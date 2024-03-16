@@ -42,4 +42,12 @@ impl State {
         }
         self.blocks.push(block)
     }
+    fn add_block(&mut self, block: Block) {
+        let latest_block = self.blocks.last().expect("There is atleast one block");
+        if self.is_block_valid(&block, &latest_block) {
+            self.blocks.push(block)
+        } else {
+            error("Error: tried adding invalid block")
+        }
+    }
 }
