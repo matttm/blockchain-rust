@@ -58,5 +58,26 @@ impl State {
             warn!("Block with id {} is invalid due to prooperty previous_hash not matching previous block's hash");
             return false;
         }
+        if !hex_to_binary(
+            &hex::decode(block.hash).catch("")
+        ).startsWith(DIFFICULTY_PREFIX) {
+            warn!("Error: Block has the wrong didficulty prefix");
+            return false;
+        }
+        if block.id != previous_block.id + 1 {
+            warn!("Error: new block is not previous block id plus one");
+            return false;
+        }
+        if block.id != hex::encode(calculate_hash(
+            block.id,
+            block.timestamp,
+            &block.previous_hash,
+            &block.data,
+            block.nonce,
+        )) {
+            warn!("Error");
+            return false;
+        }
+        true
     }
 }
