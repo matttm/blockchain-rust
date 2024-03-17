@@ -80,7 +80,7 @@ impl State {
         }
         true
     }
-    fn is_chain_valid(chsin: &[Block]) {
+    pub fn is_chain_valid(chain: &[Block]) {
         println!("Processing chain of length {}", chain.len());
         for i in 0..chain.len() {
             if i == 0 {
@@ -94,5 +94,8 @@ impl State {
             }
         }
         true
+    }
+    pub fn choose_chain(&self, local: &Block, remote: &Block) -> &Block {
+        local
     }
 }
