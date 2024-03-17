@@ -80,4 +80,13 @@ impl State {
         }
         true
     }
+    fn is_chain_valid(chsin: &[Block]) {
+        for i in 0..chain.len() {
+            if i == 0 {
+                continue;
+            }
+            let prv = chain.get(i-1).expect("");
+            let cur = chain.get(i).expect("");
+        }
+    }
 }
