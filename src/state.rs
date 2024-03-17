@@ -81,12 +81,18 @@ impl State {
         true
     }
     fn is_chain_valid(chsin: &[Block]) {
+        println!("Processing chain of length {}", chain.len());
         for i in 0..chain.len() {
             if i == 0 {
                 continue;
             }
             let prv = chain.get(i-1).expect("");
             let cur = chain.get(i).expect("");
+            if is_block_valid(&cur, &prv) {
+                warn!("Error: validation error occured on block with id {}", cur.id);
+                return false;
+            }
         }
+        true
     }
 }
