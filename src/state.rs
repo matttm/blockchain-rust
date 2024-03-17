@@ -1,3 +1,6 @@
+mod utilities
+
+use crate::utilities;
 
 pub struct State {
     pub blocks: Vec,
@@ -48,6 +51,12 @@ impl State {
             self.blocks.push(block)
         } else {
             error("Error: tried adding invalid block")
+        }
+    }
+    fn is_block_valid(&self, block: &Block, previous_block: &Block) {
+        if block.previous_hash != previous_block.hash {
+            warn!("Block with id {} is invalid due to prooperty previous_hash not matching previous block's hash");
+            return false;
         }
     }
 }
