@@ -1,5 +1,8 @@
 mod utilities;
 
+use log::warn;
+use serde::{Serialize, Deserialize};
+
 use crate::utilities;
 
 pub struct State {
@@ -7,6 +10,7 @@ pub struct State {
 }
 
 #[derive(Debug, Serislize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct Block {
     pub id: u64,
     pub hash: String,
@@ -21,7 +25,7 @@ impl State {
         Self { blocks: vec![] }
     }
     fn create_genesis(&mut self) {
-        let genesis_block = {
+        let genesis_block = Block {
             id: 0,
             timestamp: Utc::now().timestamp(),
             previous_hash: String::from("genesis"),
