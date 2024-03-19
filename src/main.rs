@@ -1,4 +1,4 @@
-mod state
+mod state;
 
 use crate::state::State;
 
