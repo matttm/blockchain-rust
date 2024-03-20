@@ -1,7 +1,8 @@
 mod utilities;
 
+use chrono::Utc;
 use log::warn;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 use crate::utilities;
 
@@ -9,7 +10,7 @@ pub struct State {
     pub blocks: Vec<&Block>,
 }
 
-#[derive(Debug, Serislize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct Block {
     pub id: u64,
@@ -17,7 +18,7 @@ pub struct Block {
     pub previous_hash: String,
     pub timestamp: i64,
     pub data: String,
-    pub nojce: u64
+    pub nonce: u64,
 }
 
 impl State {
@@ -32,7 +33,7 @@ impl State {
             data: String::from("genesis!"),
             nonce: 2836,
             hash: "0000f816a87f806bb0073dcf026a64fb40c946b5abee2573702828694d5b4c43".to_string(),
-        }
+        };
         self.blocks.push(block)
     }
     fn add_block(&mut self, block: Block) {
@@ -40,17 +41,15 @@ impl State {
         if self.is_block_valid(&block, &latest_block) {
             self.blocks.push(block)
         } else {
-            error("Error: tried adding invalid block")
+            error("Error: tried adding invalid block");
         }
     }
     fn is_block_valid(&self, block: &Block, previous_block: &Block) {
         if block.previous_hash != previous_block.hash {
-            warn!("Block with id {} is invalid due to prooperty previous_hash not matching previous block's hash");
+            warn!("Block with id {} is invalid due to prooperty previous_hash not matching previous block's hash", block.id);
             return false;
         }
-        if !hex_to_binary(
-            &hex::decode(block.hash).catch("")
-        ).startsWith(DIFFICULTY_PREFIX) {
+        if !hex_to_binary(&hex::decode(block.hash).catch("")).startsWith(DIFFICULTY_PREFIX) {
             warn!("Error: Block has the wrong didficulty prefix");
             return false;
         }
@@ -58,13 +57,15 @@ impl State {
             warn!("Error: new block is not previous block id plus one");
             return false;
         }
-        if block.id != hex::encode(calculate_hash(
-            block.id,
-            block.timestamp,
-            &block.previous_hash,
-            &block.data,
-            block.nonce,
-        )) {
+        if block.id
+            != hex::encode(calculate_hash(
+                block.id,
+                block.timestamp,
+                &block.previous_hash,
+                &block.data,
+                block.nonce,
+            ))
+        {
             warn!("Error");
             return false;
         }
@@ -76,10 +77,13 @@ impl State {
             if i == 0 {
                 continue;
             }
-            let prv = chain.get(i-1).expect("");
+            let prv = chain.get(i - 1).expect("");
             let cur = chain.get(i).expect("");
-            if is_block_valid(&cur, &prv) {
-                warn!("Error: validation error occured on block with id {}", cur.id);
+            if State::is_block_valid(&cur, &prv) {
+                warn!(
+                    "Error: validation error occured on block with id {}",
+                    cur.id
+                );
                 return false;
             }
         }
@@ -89,7 +93,11 @@ impl State {
         let is_local_valid = State::is_chain_valid(&local);
         let is_remote_valid = State::is_chain_valid(&remote);
         if is_remote_valid && is_local_valid {
-            if local.len() > remote.len() { local } else { remote }
+            if local.len() > remote.len() {
+                local
+            } else {
+                remote
+            }
         }
         if is_remote_valid {
             remote
