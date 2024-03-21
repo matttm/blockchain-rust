@@ -1,5 +1,8 @@
 mod state;
 
+pub mod constants;
+pub mod utilities;
+
 use crate::state::State;
 
 fn main() {

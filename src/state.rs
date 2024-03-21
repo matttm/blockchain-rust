@@ -1,13 +1,12 @@
-mod utilities;
-
 use chrono::Utc;
 use log::warn;
 use serde::{Deserialize, Serialize};
 
-use crate::utilities;
+use crate::constants::DIFFICULTY_PREFIX;
+use crate::utilities::hash_to_binary;
 
 pub struct State {
-    pub blocks: Vec<&Block>,
+    pub blocks: Vec,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -34,17 +33,17 @@ impl State {
             nonce: 2836,
             hash: "0000f816a87f806bb0073dcf026a64fb40c946b5abee2573702828694d5b4c43".to_string(),
         };
-        self.blocks.push(block)
+        self.blocks.push(genesis_block)
     }
     fn add_block(&mut self, block: Block) {
         let latest_block = self.blocks.last().expect("There is atleast one block");
         if self.is_block_valid(&block, &latest_block) {
             self.blocks.push(block)
         } else {
-            error("Error: tried adding invalid block");
+            error!("Error: tried adding invalid block");
         }
     }
-    fn is_block_valid(&self, block: &Block, previous_block: &Block) {
+    fn is_block_valid(block: &Block, previous_block: &Block) {
         if block.previous_hash != previous_block.hash {
             warn!("Block with id {} is invalid due to prooperty previous_hash not matching previous block's hash", block.id);
             return false;

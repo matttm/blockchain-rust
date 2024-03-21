@@ -1,4 +1,4 @@
-mod constants
+use crate::constants::DIFFICULTY_PREFIX;
 
 pub fn hash_to_binary(hash: &[u8]) -> String {
     let mut result = String::default();
