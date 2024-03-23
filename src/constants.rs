@@ -1,2 +1,1 @@
-
-pub const DIFFICULTY_PREFIX = "00";
+pub const DIFFICULTY_PREFIX: &str = "00";
