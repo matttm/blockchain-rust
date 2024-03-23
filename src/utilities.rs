@@ -1,6 +1,6 @@
 use crate::constants::DIFFICULTY_PREFIX;
 use serde_json::json;
-use sha2::Sha256;
+use sha2::{Digest, Sha256};
 
 pub fn hash_to_binary(hash: &[u8]) -> String {
     let mut result = String::default();
