@@ -1,12 +1,12 @@
 use chrono::Utc;
-use log::warn;
+use log::{error, warn};
 use serde::{Deserialize, Serialize};
 
 use crate::constants::DIFFICULTY_PREFIX;
 use crate::utilities::hash_to_binary;
 
 pub struct State {
-    pub blocks: Vec,
+    pub blocks: Vec<Block>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -37,18 +37,18 @@ impl State {
     }
     fn add_block(&mut self, block: Block) {
         let latest_block = self.blocks.last().expect("There is atleast one block");
-        if self.is_block_valid(&block, &latest_block) {
+        if State::is_block_valid(&block, &latest_block) {
             self.blocks.push(block)
         } else {
-            error!("Error: tried adding invalid block");
+            panic!("Error: tried adding invalid block");
         }
     }
-    fn is_block_valid(block: &Block, previous_block: &Block) {
+    fn is_block_valid(block: &Block, previous_block: &Block) -> bool {
         if block.previous_hash != previous_block.hash {
             warn!("Block with id {} is invalid due to prooperty previous_hash not matching previous block's hash", block.id);
             return false;
         }
-        if !hex_to_binary(&hex::decode(block.hash).catch("")).startsWith(DIFFICULTY_PREFIX) {
+        if !hash_to_binary(&hex::decode(block.hash).expect("")).starts_with(DIFFICULTY_PREFIX) {
             warn!("Error: Block has the wrong didficulty prefix");
             return false;
         }
@@ -70,7 +70,7 @@ impl State {
         }
         true
     }
-    pub fn is_chain_valid(chain: &[Block]) {
+    pub fn is_chain_valid(chain: &[Block]) -> bool {
         println!("Processing chain of length {}", chain.len());
         for i in 0..chain.len() {
             if i == 0 {
@@ -88,21 +88,21 @@ impl State {
         }
         true
     }
-    pub fn choose_chain(&self, local: Vec, remote: &Vec) -> &Block {
+    pub fn choose_chain(local: Vec<Block>, remote: Vec<Block>) -> Vec<Block> {
         let is_local_valid = State::is_chain_valid(&local);
         let is_remote_valid = State::is_chain_valid(&remote);
         if is_remote_valid && is_local_valid {
             if local.len() > remote.len() {
-                local
+                return local;
             } else {
-                remote
+                return remote;
             }
         }
         if is_remote_valid {
-            remote
+            return remote;
         }
         if is_local_valid {
-            local
+            return local;
         }
         panic!("Error: no valid blockchsin to use");
     }
