@@ -1,9 +1,10 @@
 use chrono::Utc;
 use log::{error, warn};
 use serde::{Deserialize, Serialize};
+use std::fmt;
 
 use crate::constants::DIFFICULTY_PREFIX;
-use crate::utilities::hash_to_binary;
+use crate::utilities::{calculate_hash, hash_to_binary};
 
 pub struct State {
     pub blocks: Vec<Block>,
@@ -21,7 +22,7 @@ pub struct Block {
 }
 
 impl State {
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self { blocks: vec![] }
     }
     fn create_genesis(&mut self) {
@@ -105,5 +106,20 @@ impl State {
             return local;
         }
         panic!("Error: no valid blockchsin to use");
+    }
+}
+
+impl fmt::Display for State {
+    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), std::fmt::Error> {
+        write!(f, "Start of chain <id>");
+        for i in 0..self.blocks.len() {
+            write!(
+                f,
+                "Block {} -- hash {}",
+                i,
+                self.blocks.get(i).unwrap().hash
+            );
+        }
+        write!(f, "End of chain <id>")
     }
 }

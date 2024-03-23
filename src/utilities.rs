@@ -1,4 +1,6 @@
 use crate::constants::DIFFICULTY_PREFIX;
+use serde_json::json;
+use sha2::Sha256;
 
 pub fn hash_to_binary(hash: &[u8]) -> String {
     let mut result = String::default();
@@ -8,8 +10,14 @@ pub fn hash_to_binary(hash: &[u8]) -> String {
     result
 }
 
-fn calculate_hash(id: u64, timestamp: i64, previous_hash: &str, data: &str, nonce: u64) -> Vec<u8> {
-    let data = serde_json::json!({
+pub fn calculate_hash(
+    id: u64,
+    timestamp: i64,
+    previous_hash: &str,
+    data: &str,
+    nonce: u64,
+) -> Vec<u8> {
+    let data = json!({
         "id": id,
         "previous_hash": previous_hash,
         "data": data,
