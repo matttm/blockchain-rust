@@ -3,22 +3,12 @@ use log::{error, warn};
 use serde::{Deserialize, Serialize};
 use std::fmt;
 
+use crate::block::Block;
 use crate::constants::DIFFICULTY_PREFIX;
 use crate::utilities::{calculate_hash, hash_to_binary};
 
 pub struct State {
     pub blocks: Vec<Block>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[serde(rename_all = "camelCase")]
-pub struct Block {
-    pub id: u64,
-    pub hash: String,
-    pub previous_hash: String,
-    pub timestamp: i64,
-    pub data: String,
-    pub nonce: u64,
 }
 
 impl State {
