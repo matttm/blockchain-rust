@@ -1,0 +1,10 @@
+pub static KEYS: Lazy = Lazy::new(identity::Keypair::generate_ed25519);
+pub static PEER_ID: Lazy = Lazy::new(|| PeerId::from(KEYS.public()));
+pub static CHAIN_TOPIC: Lazy = Lazy::new(|| Topic::new("CHAIN"));
+pub static BLOCK_TOPIC: Lazy = Lazy::new(|| Topic::new("BLOCK"));
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ChainResponse {
+    pub blocks: Vec,
+    pub receiver: String,
+}
