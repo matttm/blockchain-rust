@@ -8,3 +8,14 @@ pub struct ChainResponse {
     pub blocks: Vec,
     pub receiver: String,
 }
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct LocalChainRequest {
+    pub from_peer_id: String,
+}
+
+pub enum EventType {
+    LocalChainResponse(ChainResponse),
+    Input(String),
+    Init,
+}
