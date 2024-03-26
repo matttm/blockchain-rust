@@ -36,7 +36,7 @@ pub enum EventType {
 }
 
 #[derive(NetworkBehaviour)]
-pub struct AppBehaviour {
+pub struct Statebehavior {
     pub floodsub: Floodsub,
     pub mdns: Mdns,
     #[behaviour(ignore)]
@@ -46,3 +46,26 @@ pub struct AppBehaviour {
     #[behaviour(ignore)]
     pub state: State,
 }
+
+impl StateBehavior {
+    pub async fn new(
+        state: State,
+        response_sender: mspc::UnboundedSender,
+        init_sender: mspc::UnboundedZender
+    ) -> Self {
+        let mut behavior = Self {
+            state,
+            floodsub: Floodsub::new(*PEER_ID),
+            mdns: Mdns::new(Defauly::default())
+                .await
+                .expect(""),
+            response_sender,
+            init_sender
+        };
+        behavior.floodsub.subscribe(CHAIN_TOPIC.clone();
+        behavior.floodsub.subscribe(BLOCK_TOPIC.clone();
+        behavior
+
+    }
+}
+
