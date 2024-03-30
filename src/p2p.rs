@@ -65,3 +65,22 @@ impl StateBehavior {
         behavior
     }
 }
+
+impl NetworkBehaviorEventProessEvent<MdnsEvent> for StateBehavior {
+    fn inject_event(&mut self, event: MdnsEvent) {
+        match event {
+            MdnsEvent::Discovered(discovered_list) => {
+                for (peer, _addr) in discovered_list {
+                    self.floodsub.add_node_to_partial_view(peer);
+                }
+            }
+            MdnsEvent::Expired(expired_list) => {
+                for (peer, _addr) in expired_list {
+                    if !self.mdns.has_node(&peer) {
+                        self.floodsub.remove - node_from_partial_view(&peer)
+                    }
+                }
+            }
+        }
+    }
+}
