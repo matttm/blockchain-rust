@@ -1,6 +1,6 @@
 # blockchain-rust
 
-Development Status: Paused
+Development Status: Active
 
 # Note
 
