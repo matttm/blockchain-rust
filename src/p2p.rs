@@ -36,7 +36,7 @@ pub enum EventType {
 }
 
 #[derive(NetworkBehaviour)]
-pub struct Statebehavior {
+pub struct StateBehavior {
     pub floodsub: Floodsub,
     pub mdns: Mdns,
     #[behaviour(ignore)]
@@ -51,7 +51,7 @@ impl StateBehavior {
     pub async fn new(
         state: State,
         response_sender: mspc::UnboundedSender,
-        init_sender: mspc::UnboundedZender,
+        init_sender: mspc::UnboundedSender,
     ) -> Self {
         let mut behavior = Self {
             state,
@@ -86,7 +86,7 @@ impl NetworkBehaviourEventProessEvent<MdnsEvent> for StateBehavior {
 }
 
 
-impl NetworkBehaviourEventProcess for AppBehaviour {
+impl NetworkBehaviourEventProcess for StateBehavior {
     fn inject_event(&mut self, event: FloodsubEvent) {
         if let FloodsubEvent::Message(msg) = event {
             if let Ok(resp) = serde_json::from_slice::(&msg.data) {
