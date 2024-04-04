@@ -13,7 +13,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use tokio::sync::mpsc;
 
-pub static KEYS: Lazy = Lazy::new(identity::Keypair::generate_ed25519);
+pub static KEYS: Lazy<identity::Keypair> = Lazy::new(identity::Keypair::generate_ed25519);
 pub static PEER_ID: Lazy = Lazy::new(|| PeerId::from(KEYS.public()));
 pub static CHAIN_TOPIC: Lazy = Lazy::new(|| Topic::new("CHAIN"));
 pub static BLOCK_TOPIC: Lazy = Lazy::new(|| Topic::new("BLOCK"));
