@@ -54,6 +54,34 @@ fn main() {
             spawn(fut);
         }))
         .build();
-    // TODO: read from stdin
+    //  read from stdin
     let mut stdin = BufReader::new(stdin()).lines();
+    
+    Swarm::listen_on(
+        &mut swarm,
+        "/ip4/0.0.0.0/tcp/0"
+            .parse()
+            .expect("can get a local socket"),
+    )
+    .expect("swarm can be started");
+
+    spawn(async move {
+        sleep(Duration::from_secs(1)).await;
+        info!("sending init event");
+        init_sender.send(true).expect("can send init event");
+    });
+
+    loop {
+        let evt = {
+            select! {
+                line = stdin.next_line() => Some(p2p::EventType::Input(line)),
+                _ = init_receiver.recv() => Some(),
+                chain = response_receiver.recv() => {},
+                event = swarm.select_next_some() => {
+                    info!("Unhandled Swarm Event: {:?}", event);
+                    None
+                },
+            }
+        }
+    }
 }
