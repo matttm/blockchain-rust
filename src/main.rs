@@ -74,13 +74,25 @@ fn main() {
     loop {
         let evt = {
             select! {
-                line = stdin.next_line() => Some(p2p::EventType::Input(line)),
-                _ = init_receiver.recv() => Some(),
-                chain = response_receiver.recv() => {},
+                line = stdin.next_line() => Some(p2p::EventType::Input(line.expect("Input exists")),
+                _ = init_receiver.recv() => {
+                        Some(p2p::EventType::Init)
+                },
+                chain = response_receiver.recv() => {
+                        Some(EventType::LocalChainResponse(chain.expect("Chain exists")))
+                },
                 event = swarm.select_next_some() => {
                     info!("Unhandled Swarm Event: {:?}", event);
                     None
                 },
+            }
+        };
+        // now do something with the evt
+        if let Some(trigger) = evt {
+            match evt {
+                p2p::EventType::Init => {}
+                p2p::EventType::LocalChainResponse(res) => {}
+                p2p::EventType::Input() => {}
             }
         }
     }

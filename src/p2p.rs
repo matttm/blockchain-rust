@@ -20,7 +20,7 @@ pub static BLOCK_TOPIC: Lazy<Topic> = Lazy::new(|| Topic::new("BLOCK"));
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ChainResponse {
-    pub blocks: Vec<&Block>,
+    pub blocks: Vec<Block>,
     pub receiver: String,
 }
 
@@ -40,9 +40,9 @@ pub struct StateBehavior {
     pub floodsub: Floodsub,
     pub mdns: Mdns,
     #[behaviour(ignore)]
-    pub response_sender: mpsc::UnboundedSender<&[u8]>,
+    pub response_sender: mpsc::UnboundedSender<ChainResponse>,
     #[behaviour(ignore)]
-    pub init_sender: mpsc::UnboundedSender<EventType::Init>,
+    pub init_sender: mpsc::UnboundedSender<bool>,
     #[behaviour(ignore)]
     pub state: State,
 }
