@@ -14,13 +14,13 @@ use std::collections::HashSet;
 use tokio::sync::mpsc;
 
 pub static KEYS: Lazy<identity::Keypair> = Lazy::new(identity::Keypair::generate_ed25519);
-pub static PEER_ID: Lazy = Lazy::new(|| PeerId::from(KEYS.public()));
-pub static CHAIN_TOPIC: Lazy = Lazy::new(|| Topic::new("CHAIN"));
-pub static BLOCK_TOPIC: Lazy = Lazy::new(|| Topic::new("BLOCK"));
+pub static PEER_ID: Lazy<PeerId> = Lazy::new(|| PeerId::from(KEYS.public()));
+pub static CHAIN_TOPIC: Lazy<Topic> = Lazy::new(|| Topic::new("CHAIN"));
+pub static BLOCK_TOPIC: Lazy<Topic> = Lazy::new(|| Topic::new("BLOCK"));
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ChainResponse {
-    pub blocks: Vec,
+    pub blocks: Vec<&Block>,
     pub receiver: String,
 }
 
@@ -40,9 +40,9 @@ pub struct StateBehavior {
     pub floodsub: Floodsub,
     pub mdns: Mdns,
     #[behaviour(ignore)]
-    pub response_sender: mpsc::UnboundedSender,
+    pub response_sender: mpsc::UnboundedSender<&[u8]>,
     #[behaviour(ignore)]
-    pub init_sender: mpsc::UnboundedSender,
+    pub init_sender: mpsc::UnboundedSender<EventType::Init>,
     #[behaviour(ignore)]
     pub state: State,
 }
@@ -50,8 +50,8 @@ pub struct StateBehavior {
 impl StateBehavior {
     pub async fn new(
         state: State,
-        response_sender: mspc::UnboundedSender,
-        init_sender: mspc::UnboundedSender,
+        response_sender: mpsc::UnboundedSender,
+        init_sender: mpsc::UnboundedSender,
     ) -> Self {
         let mut behavior = Self {
             state,
@@ -66,7 +66,7 @@ impl StateBehavior {
     }
 }
 
-impl NetworkBehaviourEventProessEvent<MdnsEvent> for StateBehavior {
+impl NetworkBehaviourEventProcessEvent<MdnsEvent> for StateBehavior {
     fn inject_event(&mut self, event: MdnsEvent) {
         match event {
             MdnsEvent::Discovered(discovered_list) => {
