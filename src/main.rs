@@ -74,7 +74,7 @@ fn main() {
     loop {
         let evt = {
             select! {
-                line = stdin.next_line() => Some(p2p::EventType::Input(line.expect("Input exists")),
+                line = stdin.next_line() => Some(p2p::EventType::Input(line.expect("Input exists"))),
                 _ = init_receiver.recv() => {
                         Some(p2p::EventType::Init)
                 },
@@ -90,9 +90,40 @@ fn main() {
         // now do something with the evt
         if let Some(trigger) = evt {
             match evt {
-                p2p::EventType::Init => {}
-                p2p::EventType::LocalChainResponse(res) => {}
-                p2p::EventType::Input() => {}
+                p2p::EventType::Init => {
+                    let peers = p2p::get_list_peers(&swarm);
+                    swarm.behaviour_mut().app.genesis();
+
+                    info!("connected nodes: {}", peers.len());
+                    if !peers.is_empty() {
+                        let req = p2p::LocalChainRequest {
+                            from_peer_id: peers
+                                .iter()
+                                .last()
+                                .expect("at least one peer")
+                                .to_string(),
+                        };
+
+                        let json = serde_json::to_string(&req).expect("can jsonify request");
+                        swarm
+                            .behaviour_mut()
+                            .floodsub
+                            .publish(p2p::CHAIN_TOPIC.clone(), json.as_bytes());
+                    }
+                }
+                p2p::EventType::LocalChainResponse(res) => {
+                    let json = serde_json::to_string(&res).expect("can stringify response");
+                    swarm
+                        .behaviour_mut()
+                        .floodsub
+                        .publish(p2p::CHAIN_TOPIC.clone(), json.as_bytes());
+                }
+                p2p::EventType::Input(line) => match line.as_str() {
+                    "ls p" => p2p::handle_print_peers(&swarm),
+                    cmd if cmd.starts_with("ls c") => p2p::handle_print_chain(&swarm),
+                    cmd if cmd.starts_with("create b") => p2p::handle_create_block(cmd, &mut swarm),
+                    _ => error!("unknown command"),
+                }
             }
         }
     }
