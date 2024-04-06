@@ -122,5 +122,30 @@ pub fn get_peer_list(swarm: &Swarm) -> Vec<String> {
     for p in peers {
         set.insert(p);
     }
-    set.iter().map(|p| p.to_string()).collect();
+    set.iter().map(|p| p.to_string()).collect()
+}
+pub fn handle_cmd_print_peers(swarm: &Swarm) {
+    let peers = get_peer_list(swarm);
+    peers.iter().for_each(|p| info!(p));
+}
+
+pub fn handle_cmd_print_chain(swarm: &Swarm) {
+    let blocks = swarm.behaviour().state.chain;
+    info!("{}", blocks);
+}
+
+
+pub fn handle_cmd_create_block(swarm: &Swarm, cmd: &str) {
+    let last: &Block = swarm.behaviour().state.chain.last();
+    let block = Block::new(
+            last.id + 1,
+            last.hash.clone(),
+            data.to_owned(),
+        );
+        let json = serde_json::to_string(&block).expect("can jsonify request");
+        behaviour.app.blocks.push(block);
+        info!("broadcasting new block");
+        behaviour
+            .floodsub
+            .publish(BLOCK_TOPIC.clone(), json.as_bytes());
 }
