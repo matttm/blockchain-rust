@@ -114,3 +114,13 @@ impl NetworkBehaviourEventProcess for StateBehavior {
         }
     }
 }
+
+pub fn get_peer_list(swarm: &Swarm) -> Vec<String> {
+    info!("Getting peer list...");
+    let peers = swarm.behaviour().mdns.discovered_nodes();
+    let set = HashSet::new();
+    for p in peers {
+        set.insert(p);
+    }
+    set.iter().map(|p| p.to_string()).collect();
+}
