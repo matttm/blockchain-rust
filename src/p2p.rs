@@ -1,4 +1,5 @@
-use crate::state::{Block, State};
+use crate::block::Block;
+use crate::State;
 
 use libp2p::{
     floodsub::{Floodsub, FloodsubEvent, Topic},
@@ -88,19 +89,19 @@ impl NetworkBehaviourEventProcess<MdnsEvent> for StateBehavior {
 impl NetworkBehaviourEventProcess<FloodsubEvent> for StateBehavior {
     fn inject_event(&mut self, event: FloodsubEvent) {
         if let FloodsubEvent::Message(msg) = event {
-            if let Ok(resp) = serde_json::from_slice(&msg.data) {
+            if let Ok(resp) = serde_json::from_slice::<ChainResponse>(&msg.data) {
                 if resp.receiver == PEER_ID.to_string() {
                     info!("Response from {}:", msg.source);
                     resp.blocks.iter().for_each(|r| info!("{:?}", r));
 
-                    self.app.blocks = self.app.choose_chain(self.app.blocks.clone(), resp.blocks);
+                    self.state.blocks = State::choose_chain(self.state.blocks.clone(), resp.blocks);
                 }
-            } else if let Ok(resp) = serde_json::from_slice(&msg.data) {
+            } else if let Ok(resp) = serde_json::from_slice::<LocalChainRequest>(&msg.data) {
                 info!("sending local chain to {}", msg.source.to_string());
                 let peer_id = resp.from_peer_id;
                 if PEER_ID.to_string() == peer_id {
                     if let Err(e) = self.response_sender.send(ChainResponse {
-                        blocks: self.app.blocks.clone(),
+                        blocks: self.state.blocks.clone(),
                         receiver: msg.source.to_string(),
                     }) {
                         error!("error sending response via channel, {}", e);
@@ -108,7 +109,7 @@ impl NetworkBehaviourEventProcess<FloodsubEvent> for StateBehavior {
                 }
             } else if let Ok(block) = serde_json::from_slice(&msg.data) {
                 info!("received new block from {}", msg.source.to_string());
-                self.app.try_add_block(block);
+                self.state.add_block(block);
             }
         }
     }
@@ -129,8 +130,8 @@ pub fn handle_cmd_print_peers(swarm: &Swarm<StateBehavior>) {
 }
 
 pub fn handle_cmd_print_chain(swarm: &Swarm<StateBehavior>) {
-    let blocks = swarm.behaviour().state.chain;
-    info!("{}", blocks);
+    let state = swarm.behaviour().state;
+    info!("{}", state);
 }
 
 pub fn handle_cmd_create_block(swarm: &mut Swarm<StateBehavior>, cmd: &str) {

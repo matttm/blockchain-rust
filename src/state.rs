@@ -15,7 +15,7 @@ impl State {
     pub fn new() -> Self {
         Self { blocks: vec![] }
     }
-    fn create_genesis(&mut self) {
+    pub fn create_genesis(&mut self) {
         let genesis_block = Block {
             id: 0,
             timestamp: Utc::now().timestamp(),
@@ -26,7 +26,7 @@ impl State {
         };
         self.blocks.push(genesis_block)
     }
-    fn add_block(&mut self, block: Block) {
+    pub fn add_block(&mut self, block: Block) {
         let latest_block = self.blocks.last().expect("There is atleast one block");
         if State::is_block_valid(&block, &latest_block) {
             self.blocks.push(block)

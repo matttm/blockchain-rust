@@ -4,6 +4,8 @@ pub mod p2p;
 pub mod state;
 pub mod utilities;
 
+use crate::block::Block;
+use crate::p2p::EventType;
 use crate::state::State;
 
 use chrono::prelude::*;
@@ -27,19 +29,20 @@ use tokio::{
     time::sleep,
 };
 
-fn main() {
+#[tokio::main]
+async fn main() {
     log::info!("Initializing channels");
-    log::info!("Peer id: {}" < p2p::PEER_ID.clone());
+    log::info!("Peer id: {}", p2p::PEER_ID.clone());
     let (response_sender, mut response_receiver) = mpsc::unbounded_channel();
     let (init_sender, mut init_receiver) = mpsc::unbounded_channel();
 
-    let auth_keys = Keypair::new()
+    let auth_keys = Keypair::<X25519Spec>::new()
         .into_authentic(&p2p::KEYS)
         .expect("expect auth keys");
 
     // make tokio con fig
 
-    let behavior = p2p::StateBehavior::new(State::new(), response_sender, init_sender).await();
+    let behavior = p2p::StateBehavior::new(State::new(), response_sender, init_sender).await;
 
     let transport = TokioTcpConfig::new()
         .upgrade(upgrade::Version::V1)
@@ -47,16 +50,15 @@ fn main() {
         .multiplex(mplex::MplexConfig::new())
         .boxed();
 
-
     // instantiate swarmbuilder
-    let swarm = SwarmBuilder::new(transport, behavior, *p2p::PEER_ID)
+    let mut swarm = SwarmBuilder::new(transport, behavior, *p2p::PEER_ID)
         .executor(Box::new(|fut| {
             spawn(fut);
         }))
         .build();
     //  read from stdin
     let mut stdin = BufReader::new(stdin()).lines();
-    
+
     Swarm::listen_on(
         &mut swarm,
         "/ip4/0.0.0.0/tcp/0"
@@ -74,7 +76,7 @@ fn main() {
     loop {
         let evt = {
             select! {
-                line = stdin.next_line() => Some(p2p::EventType::Input(line.expect("Input exists"))),
+                line = stdin.next_line() => Some(p2p::EventType::Input(line.expect("Input exists").unwrap())),
                 _ = init_receiver.recv() => {
                         Some(p2p::EventType::Init)
                 },
@@ -90,9 +92,9 @@ fn main() {
         // now do something with the evt
         if let Some(trigger) = evt {
             match evt {
-                p2p::EventType::Init => {
-                    let peers = p2p::get_list_peers(&swarm);
-                    swarm.behaviour_mut().app.genesis();
+                Some(p2p::EventType::Init) => {
+                    let peers = p2p::get_peer_list(&swarm);
+                    swarm.behaviour_mut().state.create_genesis();
 
                     info!("connected nodes: {}", peers.len());
                     if !peers.is_empty() {
@@ -111,19 +113,22 @@ fn main() {
                             .publish(p2p::CHAIN_TOPIC.clone(), json.as_bytes());
                     }
                 }
-                p2p::EventType::LocalChainResponse(res) => {
+                Some(p2p::EventType::LocalChainResponse(res)) => {
                     let json = serde_json::to_string(&res).expect("can stringify response");
                     swarm
                         .behaviour_mut()
                         .floodsub
                         .publish(p2p::CHAIN_TOPIC.clone(), json.as_bytes());
                 }
-                p2p::EventType::Input(line) => match line.as_str() {
+                Some(p2p::EventType::Input(line)) => match line.as_str() {
                     "ls p" => p2p::handle_cmd_print_peers(&swarm),
                     cmd if cmd.starts_with("ls c") => p2p::handle_cmd_print_chain(&swarm),
-                    cmd if cmd.starts_with("create b") => p2p::handle_cmd_create_block(cmd, &mut swarm),
+                    cmd if cmd.starts_with("create b") => {
+                        p2p::handle_cmd_create_block(&mut swarm, cmd)
+                    }
                     _ => error!("unknown command"),
-                }
+                },
+                None => error!("Error occured"),
             }
         }
     }
