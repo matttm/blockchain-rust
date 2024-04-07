@@ -50,13 +50,13 @@ pub struct StateBehavior {
 impl StateBehavior {
     pub async fn new(
         state: State,
-        response_sender: mpsc::UnboundedSender,
-        init_sender: mpsc::UnboundedSender,
+        response_sender: mpsc::UnboundedSender<ChainResponse>,
+        init_sender: mpsc::UnboundedSender<bool>,
     ) -> Self {
         let mut behavior = Self {
             state,
             floodsub: Floodsub::new(*PEER_ID),
-            mdns: Mdns::new(Defauly::default()).await.expect(""),
+            mdns: Mdns::new(Default::default()).await.expect(""),
             response_sender,
             init_sender,
         };
@@ -66,7 +66,7 @@ impl StateBehavior {
     }
 }
 
-impl NetworkBehaviourEventProcessEvent<MdnsEvent> for StateBehavior {
+impl NetworkBehaviourEventProcess<MdnsEvent> for StateBehavior {
     fn inject_event(&mut self, event: MdnsEvent) {
         match event {
             MdnsEvent::Discovered(discovered_list) => {
@@ -77,7 +77,7 @@ impl NetworkBehaviourEventProcessEvent<MdnsEvent> for StateBehavior {
             MdnsEvent::Expired(expired_list) => {
                 for (peer, _addr) in expired_list {
                     if !self.mdns.has_node(&peer) {
-                        self.floodsub.remove - node_from_partial_view(&peer)
+                        self.floodsub.remove_node_from_partial_view(&peer)
                     }
                 }
             }
@@ -85,18 +85,17 @@ impl NetworkBehaviourEventProcessEvent<MdnsEvent> for StateBehavior {
     }
 }
 
-
-impl NetworkBehaviourEventProcess for StateBehavior {
+impl NetworkBehaviourEventProcess<FloodsubEvent> for StateBehavior {
     fn inject_event(&mut self, event: FloodsubEvent) {
         if let FloodsubEvent::Message(msg) = event {
-            if let Ok(resp) = serde_json::from_slice::(&msg.data) {
+            if let Ok(resp) = serde_json::from_slice(&msg.data) {
                 if resp.receiver == PEER_ID.to_string() {
                     info!("Response from {}:", msg.source);
                     resp.blocks.iter().for_each(|r| info!("{:?}", r));
 
                     self.app.blocks = self.app.choose_chain(self.app.blocks.clone(), resp.blocks);
                 }
-            } else if let Ok(resp) = serde_json::from_slice::(&msg.data) {
+            } else if let Ok(resp) = serde_json::from_slice(&msg.data) {
                 info!("sending local chain to {}", msg.source.to_string());
                 let peer_id = resp.from_peer_id;
                 if PEER_ID.to_string() == peer_id {
@@ -107,7 +106,7 @@ impl NetworkBehaviourEventProcess for StateBehavior {
                         error!("error sending response via channel, {}", e);
                     }
                 }
-            } else if let Ok(block) = serde_json::from_slice::(&msg.data) {
+            } else if let Ok(block) = serde_json::from_slice(&msg.data) {
                 info!("received new block from {}", msg.source.to_string());
                 self.app.try_add_block(block);
             }
@@ -115,37 +114,35 @@ impl NetworkBehaviourEventProcess for StateBehavior {
     }
 }
 
-pub fn get_peer_list(swarm: &Swarm) -> Vec<String> {
+pub fn get_peer_list(swarm: &Swarm<StateBehavior>) -> Vec<String> {
     info!("Getting peer list...");
     let peers = swarm.behaviour().mdns.discovered_nodes();
-    let set = HashSet::new();
+    let mut set = HashSet::new();
     for p in peers {
         set.insert(p);
     }
     set.iter().map(|p| p.to_string()).collect()
 }
-pub fn handle_cmd_print_peers(swarm: &Swarm) {
+pub fn handle_cmd_print_peers(swarm: &Swarm<StateBehavior>) {
     let peers = get_peer_list(swarm);
-    peers.iter().for_each(|p| info!(p));
+    peers.iter().for_each(|p| info!("{}", p));
 }
 
-pub fn handle_cmd_print_chain(swarm: &Swarm) {
+pub fn handle_cmd_print_chain(swarm: &Swarm<StateBehavior>) {
     let blocks = swarm.behaviour().state.chain;
     info!("{}", blocks);
 }
 
-
-pub fn handle_cmd_create_block(swarm: &Swarm, cmd: &str) {
-    let last: &Block = swarm.behaviour().state.chain.last();
-    let block = Block::new(
-            last.id + 1,
-            last.hash.clone(),
-            data.to_owned(),
-        );
+pub fn handle_cmd_create_block(swarm: &mut Swarm<StateBehavior>, cmd: &str) {
+    if let Some(data) = cmd.strip_prefix("create b ") {
+        let last = swarm.behaviour().state.blocks.last().expect("Expect block");
+        let block = Block::new(last.id + 1, last.hash.clone(), data.to_owned());
         let json = serde_json::to_string(&block).expect("can jsonify request");
-        behaviour.app.blocks.push(block);
+        let behavior = swarm.behaviour();
+        behavior.state.blocks.push(block);
         info!("broadcasting new block");
-        behaviour
+        behavior
             .floodsub
             .publish(BLOCK_TOPIC.clone(), json.as_bytes());
+    }
 }
