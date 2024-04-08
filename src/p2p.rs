@@ -130,7 +130,7 @@ pub fn handle_cmd_print_peers(swarm: &Swarm<StateBehavior>) {
 }
 
 pub fn handle_cmd_print_chain(swarm: &Swarm<StateBehavior>) {
-    let state = swarm.behaviour().state;
+    let state = &swarm.behaviour().state;
     info!("{}", state);
 }
 
@@ -139,7 +139,7 @@ pub fn handle_cmd_create_block(swarm: &mut Swarm<StateBehavior>, cmd: &str) {
         let last = swarm.behaviour().state.blocks.last().expect("Expect block");
         let block = Block::new(last.id + 1, last.hash.clone(), data.to_owned());
         let json = serde_json::to_string(&block).expect("can jsonify request");
-        let behavior = swarm.behaviour();
+        let behavior: &mut StateBehavior = swarm.behaviour_mut();
         behavior.state.blocks.push(block);
         info!("broadcasting new block");
         behavior

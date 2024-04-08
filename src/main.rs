@@ -42,7 +42,8 @@ async fn main() {
 
     // make tokio con fig
 
-    let behavior = p2p::StateBehavior::new(State::new(), response_sender, init_sender).await;
+    let behavior =
+        p2p::StateBehavior::new(State::new(), response_sender, init_sender.clone()).await;
 
     let transport = TokioTcpConfig::new()
         .upgrade(upgrade::Version::V1)
@@ -90,7 +91,7 @@ async fn main() {
             }
         };
         // now do something with the evt
-        if let Some(trigger) = evt {
+        if let Some(ref trigger) = evt {
             match evt {
                 Some(p2p::EventType::Init) => {
                     let peers = p2p::get_peer_list(&swarm);
