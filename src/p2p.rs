@@ -126,12 +126,13 @@ pub fn get_peer_list(swarm: &Swarm<StateBehavior>) -> Vec<String> {
 }
 pub fn handle_cmd_print_peers(swarm: &Swarm<StateBehavior>) {
     let peers = get_peer_list(swarm);
-    peers.iter().for_each(|p| info!("{}", p));
+    println!("Peer count: {}", peers.len());
+    peers.iter().for_each(|p| println!("{}", p));
 }
 
 pub fn handle_cmd_print_chain(swarm: &Swarm<StateBehavior>) {
     let state = &swarm.behaviour().state;
-    info!("{}", state);
+    println!("{}", state);
 }
 
 pub fn handle_cmd_create_block(swarm: &mut Swarm<StateBehavior>, cmd: &str) {
@@ -141,7 +142,7 @@ pub fn handle_cmd_create_block(swarm: &mut Swarm<StateBehavior>, cmd: &str) {
         let json = serde_json::to_string(&block).expect("can jsonify request");
         let behavior: &mut StateBehavior = swarm.behaviour_mut();
         behavior.state.blocks.push(block);
-        info!("broadcasting new block");
+        println!("broadcasting new block");
         behavior
             .floodsub
             .publish(BLOCK_TOPIC.clone(), json.as_bytes());

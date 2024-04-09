@@ -66,7 +66,7 @@ async fn main() {
 
     spawn(async move {
         sleep(Duration::from_secs(1)).await;
-        info!("sending init event");
+        println!("sending init event");
         init_sender.send(true).expect("can send init event");
     });
 
@@ -93,25 +93,26 @@ async fn main() {
         if let Some(ref _trigger) = evt {
             match evt {
                 Some(p2p::EventType::Init) => {
-                //     let peers = p2p::get_peer_list(&swarm);
-                //     swarm.behaviour_mut().state.create_genesis();
+                    println!("Received init event");
+                    let peers = p2p::get_peer_list(&swarm);
+                    swarm.behaviour_mut().state.create_genesis();
 
-                //     info!("connected nodes: {}", peers.len());
-                //     if !peers.is_empty() {
-                //         let req = p2p::LocalChainRequest {
-                //             from_peer_id: peers
-                //                 .iter()
-                //                 .last()
-                //                 .expect("at least one peer")
-                //                 .to_string(),
-                //         };
+                    println!("connected nodes: {}", peers.len());
+                    if !peers.is_empty() {
+                        let req = p2p::LocalChainRequest {
+                            from_peer_id: peers
+                                .iter()
+                                .last()
+                                .expect("at least one peer")
+                                .to_string(),
+                        };
 
-                //         let json = serde_json::to_string(&req).expect("can jsonify request");
-                //         swarm
-                //             .behaviour_mut()
-                //             .floodsub
-                //             .publish(p2p::CHAIN_TOPIC.clone(), json.as_bytes());
-                //     }
+                        let json = serde_json::to_string(&req).expect("can jsonify request");
+                        swarm
+                            .behaviour_mut()
+                            .floodsub
+                            .publish(p2p::CHAIN_TOPIC.clone(), json.as_bytes());
+                    }
                 }
                 Some(p2p::EventType::LocalChainResponse(res)) => {
                 //     let json = serde_json::to_string(&res).expect("can stringify response");
@@ -121,7 +122,7 @@ async fn main() {
                 //         .publish(p2p::CHAIN_TOPIC.clone(), json.as_bytes());
                 }
                 Some(p2p::EventType::Input(line)) => {
-                    println!("Received usee input");
+                    println!("Received user input");
                     match line.as_str() {
                         "ls p" => p2p::handle_cmd_print_peers(&swarm),
                         cmd if cmd.starts_with("ls c") => p2p::handle_cmd_print_chain(&swarm),
