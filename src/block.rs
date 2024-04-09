@@ -1,5 +1,4 @@
 use chrono::Utc;
-use log::info;
 use serde::{Deserialize, Serialize};
 
 use crate::constants::DIFFICULTY_PREFIX;
@@ -30,14 +29,14 @@ impl Block {
         }
     }
     fn mine_block(id: u64, timestamp: i64, previous_hash: &str, data: &str) -> (u64, String) {
-        info!("Attempting to mine block {}", id);
-        let mut nonce = 0;
+        println!("Attempting to mine block {}", id);
+        let nonce = 0;
         loop {
             let hash = calculate_hash(id, timestamp, &previous_hash, data, nonce);
             let binary = hash_to_binary(&hash);
             if binary.starts_with(DIFFICULTY_PREFIX) {
                 let encoded = hex::encode(&hash);
-                info!("Mined block {id}! nonce: {nonce}, hash: {encoded}, binary hash: {binary}");
+                println!("Mined block {id}! nonce: {nonce}, hash: {encoded}, binary hash: {binary}");
                 return (nonce, encoded);
             }
         }
