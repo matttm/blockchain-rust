@@ -77,9 +77,10 @@ async fn main() {
                     println!("Constructing an input event");
                     Some(p2p::EventType::Input(line.expect("Input exists").unwrap()))
                 }
-                // _ = init_receiver.recv() => {
-                //         Some(p2p::EventType::Init)
-                // },
+                _ = init_receiver.recv() => {
+                    println!("Received Init event");
+                    Some(p2p::EventType::Init)
+                },
                 // chain = response_receiver.recv() => {
                 //         Some(EventType::LocalChainResponse(chain.expect("Chain exists")))
                 // },

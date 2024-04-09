@@ -1,8 +1,17 @@
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
+use std::io::stdout;
 
 use crate::constants::DIFFICULTY_PREFIX;
 use crate::utilities::{calculate_hash, hash_to_binary};
+use crossterm::{
+    cursor::{
+        SavePosition,
+        RestorePosition,
+        MoveToPreviousLine
+    },
+    execute
+};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -30,15 +39,21 @@ impl Block {
     }
     fn mine_block(id: u64, timestamp: i64, previous_hash: &str, data: &str) -> (u64, String) {
         println!("Attempting to mine block {}", id);
-        let nonce = 0;
+        // execute!(stdout(), SavePosition).expect("should x");
+        let mut nonce = 0;
         loop {
             let hash = calculate_hash(id, timestamp, &previous_hash, data, nonce);
             let binary = hash_to_binary(&hash);
+            // execute!(stdout(), RestorePosition).expect("should x");
+            // println!("Assessing hash: {}", binary);
             if binary.starts_with(DIFFICULTY_PREFIX) {
                 let encoded = hex::encode(&hash);
-                println!("Mined block {id}! nonce: {nonce}, hash: {encoded}, binary hash: {binary}");
+                println!(
+                    "Mined block {id}! nonce: {nonce}, hash: {encoded}, binary hash: {binary}"
+                );
                 return (nonce, encoded);
             }
+            nonce += 1;
         }
     }
 }
