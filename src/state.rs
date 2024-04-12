@@ -103,11 +103,17 @@ impl State {
 impl fmt::Display for State {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), std::fmt::Error> {
         let mut result = String::new();
-        result.push_str("Start of chain <id>");
+        result.push_str("Start of chain\n");
         for _i in 0..self.blocks.len() {
-            result.push_str("Block {i} -- hash {self.blocks.get(i).unwrap().hash}");
+            let block = self.blocks.get(_i).unwrap();
+            result = format!(
+                "{pre}Block {id} -- hash {hash}\n",
+                pre = result,
+                id = block.id,
+                hash = block.hash
+            );
         }
-        result.push_str("End of chain <id>");
+        result.push_str("End of chain ");
         write!(f, "{}", result)
     }
 }

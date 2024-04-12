@@ -81,13 +81,13 @@ async fn main() {
                     println!("Received Init event");
                     Some(p2p::EventType::Init)
                 },
-                // chain = response_receiver.recv() => {
-                //         Some(EventType::LocalChainResponse(chain.expect("Chain exists")))
-                // },
-                // event = swarm.select_next_some() => {
-                //     info!("Unhandled Swarm Event: {:?}", event);
-                //     None
-                // },
+                chain = response_receiver.recv() => {
+                        Some(EventType::LocalChainResponse(chain.expect("Chain exists")))
+                },
+                event = swarm.select_next_some() => {
+                    info!("Unhandled Swarm Event: {:?}", event);
+                    None
+                },
             }
         };
         // now do something with the evt
@@ -116,23 +116,23 @@ async fn main() {
                     }
                 }
                 Some(p2p::EventType::LocalChainResponse(res)) => {
-                //     let json = serde_json::to_string(&res).expect("can stringify response");
-                //     swarm
-                //         .behaviour_mut()
-                //         .floodsub
-                //         .publish(p2p::CHAIN_TOPIC.clone(), json.as_bytes());
+                    let json = serde_json::to_string(&res).expect("can stringify response");
+                    swarm
+                        .behaviour_mut()
+                        .floodsub
+                        .publish(p2p::CHAIN_TOPIC.clone(), json.as_bytes());
                 }
                 Some(p2p::EventType::Input(line)) => {
                     println!("Received user input");
                     match line.as_str() {
                         "ls p" => p2p::handle_cmd_print_peers(&swarm),
-                        cmd if cmd.starts_with("ls c") => p2p::handle_cmd_print_chain(&swarm),
+                        "ls c" => p2p::handle_cmd_print_chain(&swarm),
                         cmd if cmd.starts_with("create b") => {
                             p2p::handle_cmd_create_block(&mut swarm, cmd)
                         }
                         _ => error!("unknown command"),
                     }
-                },
+                }
                 None => error!("Error occured"),
             }
         }
