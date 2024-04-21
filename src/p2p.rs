@@ -72,12 +72,14 @@ impl NetworkBehaviourEventProcess<MdnsEvent> for StateBehavior {
         match event {
             MdnsEvent::Discovered(discovered_list) => {
                 for (peer, _addr) in discovered_list {
+                    println!("Peer discovered");
                     self.floodsub.add_node_to_partial_view(peer);
                 }
             }
             MdnsEvent::Expired(expired_list) => {
                 for (peer, _addr) in expired_list {
                     if !self.mdns.has_node(&peer) {
+                        println!("A peer disconnected");
                         self.floodsub.remove_node_from_partial_view(&peer)
                     }
                 }

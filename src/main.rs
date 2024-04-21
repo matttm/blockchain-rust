@@ -10,6 +10,7 @@ use crate::state::State;
 use libp2p::{
     core::upgrade,
     futures::StreamExt,
+    identity::ed25519,
     mplex,
     noise::{Keypair, NoiseConfig, X25519Spec},
     swarm::{Swarm, SwarmBuilder},
@@ -32,9 +33,9 @@ async fn main() {
     let (response_sender, mut response_receiver) = mpsc::unbounded_channel();
     let (init_sender, mut init_receiver) = mpsc::unbounded_channel();
 
-    let auth_keys = Keypair::<X25519Spec>::new()
-        .into_authentic(&p2p::KEYS)
-        .expect("expect auth keys");
+    let auth_keys = ed25519::Keypair::generate();
+
+    let noise = NoiseConfig::new(&auth_keys).unwrap();
 
     // make tokio con fig
 
@@ -43,7 +44,7 @@ async fn main() {
 
     let transport = TokioTcpConfig::new()
         .upgrade(upgrade::Version::V1)
-        .authenticate(NoiseConfig::xx(auth_keys).into_authenticated())
+        .authenicate(noise)
         .multiplex(mplex::MplexConfig::new())
         .boxed();
 
