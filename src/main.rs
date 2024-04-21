@@ -10,12 +10,9 @@ use crate::state::State;
 use libp2p::{
     core::upgrade,
     futures::StreamExt,
-    identity::ed25519,
-    mplex,
-    noise::{Keypair, NoiseConfig, X25519Spec},
-    swarm::{Swarm, SwarmBuilder},
-    tcp::TokioTcpConfig,
-    Transport,
+    identity::{ed25519, Keypair},
+    swarm::Swarm,
+    tcp, SwarmBuilder, Transport,
 };
 use log::{error, info};
 use std::time::Duration;
@@ -33,20 +30,20 @@ async fn main() {
     let (response_sender, mut response_receiver) = mpsc::unbounded_channel();
     let (init_sender, mut init_receiver) = mpsc::unbounded_channel();
 
-    let auth_keys = ed25519::Keypair::generate();
+    let auth_keys = Keypair::generate_ed25519();
 
-    let noise = NoiseConfig::new(&auth_keys).unwrap();
+    // let noise = NoiseConfig::new(&auth_keys).unwrap();
 
     // make tokio con fig
 
     let behavior =
         p2p::StateBehavior::new(State::new(), response_sender, init_sender.clone()).await;
 
-    let transport = TokioTcpConfig::new()
-        .upgrade(upgrade::Version::V1)
-        .authenicate(noise)
-        .multiplex(mplex::MplexConfig::new())
-        .boxed();
+    let transport = tcp::Transport::new(tcp::Config::default()); //TokioTcpConfig::new()
+                                                                 // .upgrade(upgrade::Version::V1)
+                                                                 // .authenicate(noise)
+                                                                 // .multiplex(mplex::MplexConfig::new())
+                                                                 // .boxed();
 
     // instantiate swarmbuilder
     let mut swarm = SwarmBuilder::new(transport, behavior, *p2p::PEER_ID)
