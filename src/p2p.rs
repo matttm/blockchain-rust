@@ -13,6 +13,7 @@ use log::{error, info};
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
+use std::convert::From;
 use tokio::sync::mpsc;
 
 pub static KEYS: Lazy<identity::Keypair> = Lazy::new(identity::Keypair::generate_ed25519);
@@ -33,8 +34,6 @@ pub struct LocalChainRequest {
 
 pub enum EventType {
     LocalChainResponse(ChainResponse),
-    Input(String),
-    Init,
 }
 
 // impl From<Init> for StateBehavior {
@@ -44,12 +43,6 @@ pub enum EventType {
 impl From<ChainResponse> for EventType {
     fn from(event: ChainResponse) -> Self {
         Self::LocalChainResponse(event)
-    }
-}
-
-impl From<LocalChainRequest> for EventType {
-    fn from(event: LocalChainRequest) -> Self {
-        Self::
     }
 }
 
@@ -82,6 +75,35 @@ impl StateBehavior {
         behavior.floodsub.subscribe(BLOCK_TOPIC.clone());
         behavior
     }
+}
+
+impl NetworkBehaviour for StateBehavior {
+    // Required methods
+    fn handle_established_inbound_connection(
+        &mut self,
+        _connection_id: ConnectionId,
+        peer: PeerId,
+        local_addr: &Multiaddr,
+        remote_addr: &Multiaddr,
+    ) -> Result<Self::ConnectionHandler, ConnectionDenied>;
+    fn handle_established_outbound_connection(
+        &mut self,
+        _connection_id: ConnectionId,
+        peer: PeerId,
+        addr: &Multiaddr,
+        role_override: Endpoint,
+    ) -> Result<Self::ConnectionHandler, ConnectionDenied>;
+    fn on_swarm_event(&mut self, event: FromSwarm<'_>);
+    fn on_connection_handler_event(
+        &mut self,
+        _peer_id: PeerId,
+        _connection_id: ConnectionId,
+        _event: <Self::ConnectionHandler as ConnectionHandler>::ToBehaviour,
+    );
+    fn poll(
+        &mut self,
+        cx: &mut Context<'_>,
+    ) -> Poll<ToSwarm<Self::ToSwarm, <Self::ConnectionHandler as ConnectionHandler>::FromBehaviour>>;
 }
 
 pub fn get_peer_list(swarm: &Swarm<StateBehavior>) -> Vec<String> {
