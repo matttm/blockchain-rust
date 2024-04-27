@@ -41,12 +41,16 @@ pub enum EventType {
 //     fn from(event: Init) {}
 // }
 
-impl From<ChainResponse> for StateBehavior {
-    fn from(event: ChainResponse) {}
+impl From<ChainResponse> for EventType {
+    fn from(event: ChainResponse) -> Self {
+        Self::LocalChainResponse(event)
+    }
 }
 
-impl From<LocalChainRequest> for StateBehavior {
-    fn from(event: LocalChainRequest) {}
+impl From<LocalChainRequest> for EventType {
+    fn from(event: LocalChainRequest) -> Self {
+        Self::
+    }
 }
 
 #[derive(NetworkBehaviour)]
