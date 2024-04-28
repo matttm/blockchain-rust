@@ -8,7 +8,10 @@ use libp2p::{
         Floodsub, FloodsubEvent, Topic,
     },
     identity,
-    swarm::{ConnectionDenied, ConnectionId, NetworkBehaviour, OneShotHandler, Swarm},
+    swarm::{
+        behaviour::FromSwarm, ConnectionDenied, ConnectionId, NetworkBehaviour, OneShotHandler,
+        Swarm,
+    },
     PeerId,
 };
 
@@ -17,6 +20,7 @@ use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use std::convert::From;
+use std::task::{Context, Poll};
 use tokio::sync::mpsc;
 
 pub static KEYS: Lazy<identity::Keypair> = Lazy::new(identity::Keypair::generate_ed25519);
@@ -91,6 +95,12 @@ impl NetworkBehaviour for StateBehavior {
         local_addr: &Multiaddr,
         remote_addr: &Multiaddr,
     ) -> Result<Self::ConnectionHandler, ConnectionDenied> {
+        self.floodsub.handle_established_inbound_connection(
+            _connection_id,
+            peer,
+            local_addr,
+            remote_addr,
+        )
     }
     fn handle_established_outbound_connection(
         &mut self,
@@ -99,6 +109,12 @@ impl NetworkBehaviour for StateBehavior {
         addr: &Multiaddr,
         role_override: Endpoint,
     ) -> Result<Self::ConnectionHandler, ConnectionDenied> {
+        self.floodsub.handle_established_outbound_connection(
+            _connection_id,
+            peer,
+            addr,
+            role_override,
+        )
     }
     fn on_swarm_event(&mut self, event: FromSwarm<'_>) {}
     fn on_connection_handler_event(
@@ -107,12 +123,15 @@ impl NetworkBehaviour for StateBehavior {
         _connection_id: ConnectionId,
         _event: <Self::ConnectionHandler as ConnectionHandler>::ToBehaviour,
     ) {
+        self.floodsub
+            .on_swarm_event(_peer_id, _connection_id, _event)
     }
     fn poll(
         &mut self,
         cx: &mut Context<'_>,
     ) -> Poll<ToSwarm<Self::ToSwarm, <Self::ConnectionHandler as ConnectionHandler>::FromBehaviour>>
     {
+        self.floodsub.poll(cx)
     }
 }
 
