@@ -85,7 +85,7 @@ impl StateBehavior {
 }
 
 impl NetworkBehaviour for StateBehavior {
-    type ConnectionHandler = OneShotHandler<FloodsubProtocol, FloodsubRpc, InnerMessage>;
+    type ConnectionHandler = OneShotHandler<FloodsubProtocol, FloodsubRpc, FloodsubEvent>;
     type ToSwarm = EventType;
     // Required methods
     fn handle_established_inbound_connection(
@@ -116,7 +116,9 @@ impl NetworkBehaviour for StateBehavior {
             role_override,
         )
     }
-    fn on_swarm_event(&mut self, event: FromSwarm<'_>) {}
+    fn on_swarm_event(&mut self, event: FromSwarm<'_>) {
+        self.floodsub.on_swarm_event(event)
+    }
     fn on_connection_handler_event(
         &mut self,
         _peer_id: PeerId,
@@ -124,7 +126,7 @@ impl NetworkBehaviour for StateBehavior {
         _event: <Self::ConnectionHandler as ConnectionHandler>::ToBehaviour,
     ) {
         self.floodsub
-            .on_swarm_event(_peer_id, _connection_id, _event)
+            .on_connection_handler_event(_peer_id, _connection_id, _event)
     }
     fn poll(
         &mut self,
