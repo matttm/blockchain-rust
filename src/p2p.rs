@@ -41,11 +41,9 @@ pub struct LocalChainRequest {
 
 pub enum EventType {
     LocalChainResponse(ChainResponse),
+    Input(String),
+    Init,
 }
-
-// impl From<Init> for StateBehavior {
-//     fn from(event: Init) {}
-// }
 
 impl From<ChainResponse> for EventType {
     fn from(event: ChainResponse) -> Self {
