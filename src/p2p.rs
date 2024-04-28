@@ -2,10 +2,13 @@ use crate::block::Block;
 use crate::State;
 
 use libp2p::{
-    floodsub::{Floodsub, FloodsubEvent, Topic},
+    core::{Endpoint, Multiaddr},
+    floodsub::{
+        protocol::{FloodsubProtocol, FloodsubRpc},
+        Floodsub, FloodsubEvent, Topic,
+    },
     identity,
-    swarm::NetworkBehaviour,
-    swarm::Swarm,
+    swarm::{ConnectionDenied, ConnectionId, NetworkBehaviour, OneShotHandler, Swarm},
     PeerId,
 };
 
@@ -78,6 +81,8 @@ impl StateBehavior {
 }
 
 impl NetworkBehaviour for StateBehavior {
+    type ConnectionHandler = OneShotHandler<FloodsubProtocol, FloodsubRpc, InnerMessage>;
+    type ToSwarm = EventType;
     // Required methods
     fn handle_established_inbound_connection(
         &mut self,
@@ -85,25 +90,30 @@ impl NetworkBehaviour for StateBehavior {
         peer: PeerId,
         local_addr: &Multiaddr,
         remote_addr: &Multiaddr,
-    ) -> Result<Self::ConnectionHandler, ConnectionDenied>;
+    ) -> Result<Self::ConnectionHandler, ConnectionDenied> {
+    }
     fn handle_established_outbound_connection(
         &mut self,
         _connection_id: ConnectionId,
         peer: PeerId,
         addr: &Multiaddr,
         role_override: Endpoint,
-    ) -> Result<Self::ConnectionHandler, ConnectionDenied>;
-    fn on_swarm_event(&mut self, event: FromSwarm<'_>);
+    ) -> Result<Self::ConnectionHandler, ConnectionDenied> {
+    }
+    fn on_swarm_event(&mut self, event: FromSwarm<'_>) {}
     fn on_connection_handler_event(
         &mut self,
         _peer_id: PeerId,
         _connection_id: ConnectionId,
         _event: <Self::ConnectionHandler as ConnectionHandler>::ToBehaviour,
-    );
+    ) {
+    }
     fn poll(
         &mut self,
         cx: &mut Context<'_>,
-    ) -> Poll<ToSwarm<Self::ToSwarm, <Self::ConnectionHandler as ConnectionHandler>::FromBehaviour>>;
+    ) -> Poll<ToSwarm<Self::ToSwarm, <Self::ConnectionHandler as ConnectionHandler>::FromBehaviour>>
+    {
+    }
 }
 
 pub fn get_peer_list(swarm: &Swarm<StateBehavior>) -> Vec<String> {
