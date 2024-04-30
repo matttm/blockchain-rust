@@ -63,7 +63,31 @@ impl From<()> for EventType {
 impl From<FloodsubEvent> for EventType {
     fn from(event: FloodsubEvent) -> Self {
         match event {
-            FloodsubEvent::Message(message) => {}
+            FloodsubEvent::Message(message) => {
+                if let Ok(resp) = serde_json::from_slice::<ChainResponse>(&msg.data) {
+                    if resp.receiver == PEER_ID.to_string() {
+                        info!("Response from {}:", msg.source);
+                        resp.blocks.iter().for_each(|r| info!("{:?}", r));
+
+                        self.state.blocks =
+                            State::choose_chain(self.state.blocks.clone(), resp.blocks);
+                    }
+                } else if let Ok(resp) = serde_json::from_slice::<LocalChainRequest>(&msg.data) {
+                    info!("sending local chain to {}", msg.source.to_string());
+                    let peer_id = resp.from_peer_id;
+                    if PEER_ID.to_string() == peer_id {
+                        if let Err(e) = self.response_sender.send(ChainResponse {
+                            blocks: self.state.blocks.clone(),
+                            receiver: msg.source.to_string(),
+                        }) {
+                            error!("error sending response via channel, {}", e);
+                        }
+                    }
+                } else if let Ok(block) = serde_json::from_slice(&msg.data) {
+                    info!("received new block from {}", msg.source.to_string());
+                    self.state.add_block(block);
+                }
+            }
             _ => println!("Someone subscribed or unsubscribed"),
         }
     }
