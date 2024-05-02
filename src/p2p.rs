@@ -45,25 +45,10 @@ pub enum EventType {
     Init,
 }
 
-impl From<ChainResponse> for EventType {
-    fn from(event: ChainResponse) -> Self {
-        Self::LocalChainResponse(event)
-    }
-}
-impl From<String> for EventType {
-    fn from(event: String) -> Self {
-        EventType::Input(event)
-    }
-}
-impl From<()> for EventType {
-    fn from(_: ()) -> Self {
-        EventType::Init
-    }
-}
 impl From<FloodsubEvent> for EventType {
     fn from(event: FloodsubEvent) -> Self {
         match event {
-            FloodsubEvent::Message(message) => {
+            FloodsubEvent::Message(msg) => {
                 if let Ok(resp) = serde_json::from_slice::<ChainResponse>(&msg.data) {
                     if resp.receiver == PEER_ID.to_string() {
                         info!("Response from {}:", msg.source);
