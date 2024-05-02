@@ -99,7 +99,7 @@ impl StateBehavior {
 
 pub fn get_peer_list(swarm: &Swarm<StateBehavior>) -> Vec<String> {
     info!("Getting peer list...");
-    let peers = swarm.behaviour().mdns.discovered_nodes();
+    let peers = swarm.connected_peers();
     let mut set = HashSet::new();
     for p in peers {
         set.insert(p);
@@ -112,18 +112,17 @@ pub fn handle_cmd_print_peers(swarm: &Swarm<StateBehavior>) {
     peers.iter().for_each(|p| println!("{}", p));
 }
 
-pub fn handle_cmd_print_chain(swarm: &Swarm<StateBehavior>) {
-    let state = &swarm.behaviour().state;
+pub fn handle_cmd_print_chain(state: &State, swarm: &Swarm<StateBehavior>) {
     println!("{}", state);
 }
 
-pub fn handle_cmd_create_block(swarm: &mut Swarm<StateBehavior>, cmd: &str) {
+pub fn handle_cmd_create_block(state: &mut State, swarm: &mut Swarm<StateBehavior>, cmd: &str) {
     if let Some(data) = cmd.strip_prefix("create b ") {
-        let last = swarm.behaviour().state.blocks.last().expect("Expect block");
+        let last = state.blocks.last().expect("Expect block");
         let block = Block::new(last.id + 1, last.hash.clone(), data.to_owned());
         let json = serde_json::to_string(&block).expect("can jsonify request");
         let behavior: &mut StateBehavior = swarm.behaviour_mut();
-        behavior.state.blocks.push(block);
+        state.blocks.push(block);
         println!("broadcasting new block");
         behavior
             .floodsub
