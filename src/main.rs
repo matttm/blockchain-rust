@@ -34,10 +34,10 @@ async fn main() {
 
     // let noise = NoiseConfig::new(&auth_keys).unwrap();
 
-    // make tokio con fig
+    let mut state: State = State::new();
 
     let behavior =
-        p2p::StateBehavior::new(State::new(), response_sender, init_sender.clone()).await;
+        p2p::StateBehavior::new().await;
 
     let transport = tcp::Transport::new(tcp::Config::default()); //TokioTcpConfig::new()
                                                                  // .upgrade(upgrade::Version::V1)
@@ -124,7 +124,7 @@ async fn main() {
                     println!("Received user input");
                     match line.as_str() {
                         "ls p" => p2p::handle_cmd_print_peers(&swarm),
-                        "ls c" => p2p::handle_cmd_print_chain(&swarm),
+                        "ls c" => p2p::handle_cmd_print_chain(&mut state, &swarm),
                         cmd if cmd.starts_with("create b") => {
                             p2p::handle_cmd_create_block(&mut swarm, cmd)
                         }

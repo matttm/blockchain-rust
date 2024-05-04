@@ -18,7 +18,7 @@ use libp2p::{
 use log::{error, info};
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
-use std::collections::HashSet;
+use std::{clone, collections::HashSet};
 use std::convert::From;
 use std::task::{Context, Poll};
 use tokio::sync::mpsc;
@@ -29,38 +29,48 @@ pub static CHAIN_TOPIC: Lazy<Topic> = Lazy::new(|| Topic::new("CHAIN"));
 pub static BLOCK_TOPIC: Lazy<Topic> = Lazy::new(|| Topic::new("BLOCK"));
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct ChainResponse {
+pub struct ChainMessage {
     pub blocks: Vec<Block>,
     pub receiver: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct LocalChainRequest {
+pub struct ChainRequest {
     pub from_peer_id: String,
 }
 
 pub enum EventType {
-    LocalChainResponse(ChainResponse),
+    LocalChainRequest(ChainRequest),
+    // the following can be used to send a response or send chain after a local add
+    LocalChainMessage(ChainMessage),
+    // the following is never sent over the swarm (only used locally)
     Input(String),
+    // the following is never sent over the swarm (only used locally)
     Init,
+    Ignore
 }
 
 impl From<FloodsubEvent> for EventType {
     fn from(event: FloodsubEvent) -> Self {
         if let FloodsubEvent::Message(msg) = event {
-            let topics = msg.topics;
-            
-            if let Ok(resp) = serde_json::from_slice::<ChainResponse>(&msg.data) {
-                if resp.receiver == PEER_ID.to_string() {
+            // let topic = String::from(msg.topics[0].id());
+            let topic = msg.topics[0].id();
+            let data = &msg.data;
+            // TODO: REMOVE HARD CODE
+            match topic {
+                "CHAIN" => {
+                    if let Ok(chainMessage) = serde_json::from_slice::<ChainMessage>(&data) {
+                        return EventType::LocalChainMessage(chainMessage);
+                    } else if let Ok(chainRequest) = serde_json::from_slice::<ChainRequest>(&data) {
+                        return EventType::LocalChainRequest(chainRequest);
+                    }
+                },
+                "BLOCK" => {
+                    return EventType::Ignore;
                 }
-            } else if let Ok(resp) = serde_json::from_slice::<LocalChainRequest>(&msg.data) {
-                info!("sending local chain to {}", msg.source.to_string());
-                let peer_id = resp.from_peer_id;
-                if PEER_ID.to_string() == peer_id {
-                }
-            } else if let Ok(block) = serde_json::from_slice(&msg.data) {
             }
         }
+        EventType::Ignore
     }
 }
 
