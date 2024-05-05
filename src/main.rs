@@ -8,12 +8,10 @@ use crate::p2p::EventType;
 use crate::state::State;
 
 use libp2p::{
-    core::upgrade,
+    core::{transport, upgrade},
     futures::StreamExt,
     identity::{ed25519, Keypair},
-    noise,
-    swarm::Config,
-    tcp, Swarm, SwarmBuilder, Transport,
+    noise, swarm, tcp, yamux, Swarm, SwarmBuilder, Transport,
 };
 use log::{error, info};
 use std::time::Duration;
@@ -43,8 +41,8 @@ async fn main() {
     let transport = tcp::tokio::Transport::new(tcp::Config::default())
         .upgrade(upgrade::Version::V1)
         .authenticate(noise)
-        .apply()
-        .multiplex(mplex::MplexConfig::new())
+        //  .apply()
+        .multiplex(yamux::Config::default())
         .boxed();
 
     // instantiate swarmbuilder
@@ -52,7 +50,7 @@ async fn main() {
         transport,
         behavior,
         *p2p::PEER_ID,
-        Config::with_executor(Box::new(|fut| {
+        swarm::Config::with_executor(Box::new(|fut| {
             spawn(fut);
         })),
     );
