@@ -11,7 +11,7 @@ use libp2p::{
     core::upgrade,
     futures::StreamExt,
     identity::{ed25519, Keypair},
-    swarm::Swarm,
+    swarm::{Config, Swarm},
     tcp, SwarmBuilder, Transport,
 };
 use log::{error, info};
@@ -25,8 +25,9 @@ use tokio::{
 
 #[tokio::main]
 async fn main() {
-    println!("Initializing channels");
-    println!("Peer id: {}", p2p::PEER_ID.clone());
+    pretty_env_logger::init();
+    info!("Initializing channels");
+    info!("Peer id: {}", p2p::PEER_ID.clone());
     let (response_sender, mut response_receiver) = mpsc::unbounded_channel();
     let (init_sender, mut init_receiver) = mpsc::unbounded_channel();
 
@@ -46,11 +47,17 @@ async fn main() {
                                                                  // .boxed();
 
     // instantiate swarmbuilder
-    let mut swarm = SwarmBuilder::new(transport, behavior, *p2p::PEER_ID)
-        .executor(Box::new(|fut| {
-            spawn(fut);
-        }))
-        .build();
+    let mut swarm = Swarm::new(
+        transport,
+        behavior,
+        *p2p::PEER_ID,
+        Config::with_executor(
+            Box::new(|fut| {
+                spawn(fut);
+            })
+        )
+    );
+
     //  read from stdin
     let mut stdin = BufReader::new(stdin()).lines();
 

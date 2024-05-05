@@ -57,6 +57,7 @@ impl From<FloodsubEvent> for EventType {
             let topic = msg.topics[0].id();
             let data = &msg.data;
             // TODO: REMOVE HARD CODE
+            info!("Event with topic {topic} received");
             match topic {
                 "CHAIN" => {
                     if let Ok(chainMessage) = serde_json::from_slice::<ChainMessage>(&data) {
@@ -104,12 +105,12 @@ pub fn get_peer_list(swarm: &Swarm<StateBehavior>) -> Vec<String> {
 }
 pub fn handle_cmd_print_peers(swarm: &Swarm<StateBehavior>) {
     let peers = get_peer_list(swarm);
-    println!("Peer count: {}", peers.len());
+    info!("Peer count: {}", peers.len());
     peers.iter().for_each(|p| println!("{}", p));
 }
 
 pub fn handle_cmd_print_chain(state: &State, swarm: &Swarm<StateBehavior>) {
-    println!("{}", state);
+    info!("{}", state);
 }
 
 pub fn handle_cmd_create_block(state: &mut State, swarm: &mut Swarm<StateBehavior>, cmd: &str) {
@@ -119,7 +120,7 @@ pub fn handle_cmd_create_block(state: &mut State, swarm: &mut Swarm<StateBehavio
         let json = serde_json::to_string(&block).expect("can jsonify request");
         let behavior: &mut StateBehavior = swarm.behaviour_mut();
         state.blocks.push(block);
-        println!("broadcasting new block");
+        info!("broadcasting new block");
         behavior
             .floodsub
             .publish(BLOCK_TOPIC.clone(), json.as_bytes());
