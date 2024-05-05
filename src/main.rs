@@ -11,8 +11,9 @@ use libp2p::{
     core::upgrade,
     futures::StreamExt,
     identity::{ed25519, Keypair},
-    swarm::{Config, Swarm},
-    tcp, SwarmBuilder, Transport,
+    noise,
+    swarm::Config,
+    tcp, Swarm, SwarmBuilder, Transport,
 };
 use log::{error, info};
 use std::time::Duration;
@@ -33,29 +34,27 @@ async fn main() {
 
     let auth_keys = Keypair::generate_ed25519();
 
-    // let noise = NoiseConfig::new(&auth_keys).unwrap();
+    let noise = noise::Config::new(&auth_keys).unwrap();
 
     let mut state: State = State::new();
 
-    let behavior =
-        p2p::StateBehavior::new().await;
+    let behavior = p2p::StateBehavior::new().await;
 
-    let transport = tcp::Transport::new(tcp::Config::default()); //TokioTcpConfig::new()
-                                                                 // .upgrade(upgrade::Version::V1)
-                                                                 // .authenicate(noise)
-                                                                 // .multiplex(mplex::MplexConfig::new())
-                                                                 // .boxed();
+    let transport = tcp::tokio::Transport::new(tcp::Config::default())
+        .upgrade(upgrade::Version::V1)
+        .authenticate(noise)
+        .apply()
+        .multiplex(mplex::MplexConfig::new())
+        .boxed();
 
     // instantiate swarmbuilder
     let mut swarm = Swarm::new(
         transport,
         behavior,
         *p2p::PEER_ID,
-        Config::with_executor(
-            Box::new(|fut| {
-                spawn(fut);
-            })
-        )
+        Config::with_executor(Box::new(|fut| {
+            spawn(fut);
+        })),
     );
 
     //  read from stdin
