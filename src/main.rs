@@ -97,7 +97,7 @@ async fn main() {
                     let peers = p2p::get_peer_list(&swarm);
                     state.create_genesis();
 
-                    println!("connected nodes: {}", peers.len());
+                    info!("connected nodes: {}", peers.len());
                     if !peers.is_empty() {
                         let req = p2p::ChainRequest {
                             from_peer_id: peers
@@ -122,7 +122,7 @@ async fn main() {
                         .publish(p2p::CHAIN_TOPIC.clone(), json.as_bytes());
                 }
                 Some(p2p::EventType::Input(line)) => {
-                    println!("Received user input");
+                    info!("Received user input");
                     match line.as_str() {
                         "ls p" => p2p::handle_cmd_print_peers(&swarm),
                         "ls c" => p2p::handle_cmd_print_chain(&mut state, &swarm),
@@ -132,8 +132,23 @@ async fn main() {
                         _ => error!("unknown command"),
                     }
                 }
-                Some(p2p::EventType::LocalChainRequest(req)) => {},
-                Some(p2p::EventType::Ignore) => None,
+                Some(p2p::EventType::LocalChainRequest(req)) => {
+                    info!("sending local chain to {}", msg.source.to_string());
+                    let peer_id = resp.from_peer_id;
+                    if PEER_ID.to_string() == peer_id {
+                        if let Err(e) = self.response_sender.send(ChainResponse {
+                            blocks: self.state.blocks.clone(),
+                            receiver: msg.source.to_string(),
+                        }) {
+                            error!("error sending response via channel, {}", e);
+                        }
+                    }
+                },
+                Some(p2p::EventType::BlockAddition) => {
+                    info!("received new block from {}", msg.source.to_string());
+                    self.state.add_block(block);
+                },
+                Some(p2p::EventType::Ignore) => (),
                 None => error!("Error occured"),
             }
         }
