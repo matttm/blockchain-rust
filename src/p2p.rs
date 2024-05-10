@@ -29,7 +29,7 @@ pub static CHAIN_TOPIC: Lazy<Topic> = Lazy::new(|| Topic::new("CHAIN"));
 pub static BLOCK_TOPIC: Lazy<Topic> = Lazy::new(|| Topic::new("BLOCK"));
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct ChainMessage {
+pub struct ChainResponse {
     pub blocks: Vec<Block>,
     pub receiver: String,
 }
@@ -39,10 +39,16 @@ pub struct ChainRequest {
     pub from_peer_id: String,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct BlockAddition {
+    pub block: Block,
+}
+
 pub enum EventType {
+    LocalBlockAddition(BlockAddition),
     LocalChainRequest(ChainRequest),
-    // the following can be used to send a response or send chain after a local add
-    LocalChainMessage(ChainMessage),
+    // the following can be used to send a response
+    LocalChainResponse(ChainResponse),
     // the following is never sent over the swarm (only used locally)
     Input(String),
     // the following is never sent over the swarm (only used locally)
@@ -60,8 +66,8 @@ impl From<FloodsubEvent> for EventType {
             info!("Event with topic {topic} received");
             match topic {
                 "CHAIN" => {
-                    if let Ok(chainMessage) = serde_json::from_slice::<ChainMessage>(&data) {
-                        return EventType::LocalChainMessage(chainMessage);
+                    if let Ok(chainMessage) = serde_json::from_slice::<ChainResponse>(&data) {
+                        return EventType::LocalChainResponse(chainMessage);
                     } else if let Ok(chainRequest) = serde_json::from_slice::<ChainRequest>(&data) {
                         return EventType::LocalChainRequest(chainRequest);
                     }

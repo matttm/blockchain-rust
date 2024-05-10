@@ -114,7 +114,7 @@ async fn main() {
                             .publish(p2p::CHAIN_TOPIC.clone(), json.as_bytes());
                     }
                 }
-                Some(p2p::EventType::LocalChainMessage(res)) => {
+                Some(p2p::EventType::LocalChainResponse(res)) => {
                     let json = serde_json::to_string(&res).expect("can stringify response");
                     swarm
                         .behaviour_mut()
