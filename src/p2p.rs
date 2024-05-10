@@ -41,6 +41,7 @@ pub struct ChainRequest {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct BlockAddition {
+    pub creator: String,
     pub block: Block,
 }
 
@@ -62,7 +63,7 @@ impl From<FloodsubEvent> for EventType {
             // let topic = String::from(msg.topics[0].id());
             let topic = msg.topics[0].id();
             let data = &msg.data;
-            // TODO: REMOVE HARD CODE
+            // TODO: REMOVE HARD CODE CASES
             info!("Event with topic {topic} received");
             match topic {
                 "CHAIN" => {
@@ -73,7 +74,9 @@ impl From<FloodsubEvent> for EventType {
                     }
                 },
                 "BLOCK" => {
-                    return EventType::Ignore;
+                    if let Ok(blockAddition) = serde_json::from_slice::<BlockAddition>(&data) {
+                        return EventType::LocalBlockAddition(blockAddition);
+                    }
                 }
             }
         }
@@ -127,6 +130,7 @@ pub fn handle_cmd_create_block(state: &mut State, swarm: &mut Swarm<StateBehavio
         let behavior: &mut StateBehavior = swarm.behaviour_mut();
         state.blocks.push(block);
         info!("broadcasting new block");
+        // TODO: add code for sending event instead
         behavior
             .floodsub
             .publish(BLOCK_TOPIC.clone(), json.as_bytes());

@@ -133,20 +133,20 @@ async fn main() {
                     }
                 }
                 Some(p2p::EventType::LocalChainRequest(req)) => {
-                    info!("sending local chain to {}", msg.source.to_string());
-                    let peer_id = resp.from_peer_id;
-                    if PEER_ID.to_string() == peer_id {
-                        if let Err(e) = self.response_sender.send(ChainResponse {
-                            blocks: self.state.blocks.clone(),
-                            receiver: msg.source.to_string(),
+                    let peer_id = req.from_peer_id;
+                    info!("sending local chain to {}", peer_id);
+                    if p2p::PEER_ID.to_string() == peer_id {
+                        if let Err(e) = behavior.floodsub.publish(ChainResponse {
+                            blocks: state.blocks.clone(),
+                            receiver: peer_id,
                         }) {
                             error!("error sending response via channel, {}", e);
                         }
                     }
                 },
-                Some(p2p::EventType::BlockAddition) => {
-                    info!("received new block from {}", msg.source.to_string());
-                    self.state.add_block(block);
+                Some(p2p::EventType::LocalBlockAddition(blockAddition)) => {
+                    info!("received new block from {}", blockAddition.creator.to_string());
+                    state.add_block(blockAddition.block);
                 },
                 Some(p2p::EventType::Ignore) => (),
                 None => error!("Error occured"),
