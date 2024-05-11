@@ -126,13 +126,22 @@ pub fn handle_cmd_create_block(state: &mut State, swarm: &mut Swarm<StateBehavio
     if let Some(data) = cmd.strip_prefix("create b ") {
         let last = state.blocks.last().expect("Expect block");
         let block = Block::new(last.id + 1, last.hash.clone(), data.to_owned());
-        let json = serde_json::to_string(&block).expect("can jsonify request");
-        let behavior: &mut StateBehavior = swarm.behaviour_mut();
         state.blocks.push(block);
         info!("broadcasting new block");
-        // TODO: add code for sending event instead
-        behavior
-            .floodsub
-            .publish(BLOCK_TOPIC.clone(), json.as_bytes());
+        let event = BlockAddition{ creator: PEER_ID.to_string(), block: block };
+        publish_event(
+            swarm,
+            &BLOCK_TOPIC,
+            &event
+        )
     }
+}
+
+pub fn publish_event(swarm: &mut Swarm<StateBehavior>, topic: &Topic, event: &impl Serialize) {
+    let json = serde_json::to_string(&event).expect("can jsonify request");
+    let behavior: &mut StateBehavior = swarm.behaviour_mut();
+    
+    behavior
+        .floodsub
+        .publish(BLOCK_TOPIC.clone(), json.as_bytes());
 }
