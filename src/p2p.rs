@@ -65,18 +65,21 @@ impl From<FloodsubEvent> for EventType {
             let data = &msg.data;
             // TODO: REMOVE HARD CODE CASES
             info!("Event with topic {topic} received");
-            match &topic {
+            match topic {
                 "CHAIN" => {
                     if let Ok(chainMessage) = serde_json::from_slice::<ChainResponse>(&data) {
                         return EventType::ChainResponseEvent(chainMessage);
                     } else if let Ok(chainRequest) = serde_json::from_slice::<ChainRequest>(&data) {
                         return EventType::ChainRequestEvent(chainRequest);
                     }
-                },
+                }
                 "BLOCK" => {
                     if let Ok(blockAddition) = serde_json::from_slice::<BlockAddition>(&data) {
                         return EventType::BlockAdditionEvent(blockAddition);
                     }
+                }
+                _ => {
+                    return EventType::IgnoreEvent;
                 }
             }
         }
