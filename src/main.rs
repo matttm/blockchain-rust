@@ -4,22 +4,21 @@ pub mod p2p;
 pub mod state;
 pub mod utilities;
 
-use crate::p2p::EventType;
 use crate::state::State;
 
 use libp2p::{
-    core::{transport, upgrade},
+    core::{upgrade},
     futures::StreamExt,
     identity::{ed25519, Keypair},
-    noise, swarm, tcp, yamux, Swarm, SwarmBuilder, Transport,
+    noise, swarm, tcp, yamux, Swarm, Transport,
 };
 use log::{error, info};
 use std::time::Duration;
 use tokio::{
     io::{stdin, AsyncBufReadExt, BufReader},
     select, spawn,
-    sync::mpsc,
     time::sleep,
+    sync::mpsc
 };
 
 #[tokio::main]
@@ -27,7 +26,6 @@ async fn main() {
     pretty_env_logger::init();
     info!("Initializing channels");
     info!("Peer id: {}", p2p::PEER_ID.clone());
-    let (response_sender, mut response_receiver) = mpsc::unbounded_channel();
     let (init_sender, mut init_receiver) = mpsc::unbounded_channel();
 
     let auth_keys = Keypair::generate_ed25519();
@@ -77,11 +75,11 @@ async fn main() {
             select! {
                 line = stdin.next_line() => {
                     println!("Constructing an input event");
-                    Some(p2p::EventType::Input(line.expect("Input exists").unwrap()))
+                    Some(p2p::EventType::InputEvent(line.expect("Input exists").unwrap()))
                 }
                 _ = init_receiver.recv() => {
                     println!("Received Init event");
-                    Some(p2p::EventType::Init)
+                    Some(p2p::EventType::InitEvent)
                 },
                 event = swarm.select_next_some() => {
                     info!("Received event from zwarm");
@@ -92,7 +90,7 @@ async fn main() {
         // now do something with the evt
         if let Some(ref _trigger) = evt {
             match evt {
-                Some(p2p::EventType::Init) => {
+                Some(p2p::EventType::InitEvent) => {
                     info!("Received init event");
                     let peers = p2p::get_peer_list(&swarm);
                     state.create_genesis();
@@ -114,14 +112,14 @@ async fn main() {
                             .publish(p2p::CHAIN_TOPIC.clone(), json.as_bytes());
                     }
                 }
-                Some(p2p::EventType::LocalChainResponse(res)) => {
+                Some(p2p::EventType::ChainResponseEvent(res)) => {
                     let json = serde_json::to_string(&res).expect("can stringify response");
                     swarm
                         .behaviour_mut()
                         .floodsub
                         .publish(p2p::CHAIN_TOPIC.clone(), json.as_bytes());
                 }
-                Some(p2p::EventType::Input(line)) => {
+                Some(p2p::EventType::InputEvent(line)) => {
                     info!("Received user input");
                     match line.as_str() {
                         "ls p" => p2p::handle_cmd_print_peers(&swarm),
@@ -132,23 +130,22 @@ async fn main() {
                         _ => error!("unknown command"),
                     }
                 }
-                Some(p2p::EventType::LocalChainRequest(req)) => {
+                Some(p2p::EventType::ChainRequestEvent(req)) => {
                     let peer_id = req.from_peer_id;
                     info!("sending local chain to {}", peer_id);
                     if p2p::PEER_ID.to_string() == peer_id {
-                        if let Err(e) = behavior.floodsub.publish(ChainResponse {
+                        let data = p2p::ChainResponse {
                             blocks: state.blocks.clone(),
                             receiver: peer_id,
-                        }) {
-                            error!("error sending response via channel, {}", e);
-                        }
+                        };
+                        p2p::publish_event(&mut swarm, &p2p::CHAIN_TOPIC, &data);
                     }
-                },
-                Some(p2p::EventType::LocalBlockAddition(blockAddition)) => {
+                }
+                Some(p2p::EventType::BlockAdditionEvent(blockAddition)) => {
                     info!("received new block from {}", blockAddition.creator.to_string());
                     state.add_block(blockAddition.block);
-                },
-                Some(p2p::EventType::Ignore) => (),
+                }
+                Some(p2p::EventType::IgnoreEvent) => (),
                 None => error!("Error occured"),
             }
         }

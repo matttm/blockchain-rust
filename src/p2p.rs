@@ -46,15 +46,15 @@ pub struct BlockAddition {
 }
 
 pub enum EventType {
-    LocalBlockAddition(BlockAddition),
-    LocalChainRequest(ChainRequest),
+    BlockAdditionEvent(BlockAddition),
+    ChainRequestEvent(ChainRequest),
     // the following can be used to send a response
-    LocalChainResponse(ChainResponse),
+    ChainResponseEvent(ChainResponse),
     // the following is never sent over the swarm (only used locally)
-    Input(String),
+    InputEvent(String),
     // the following is never sent over the swarm (only used locally)
-    Init,
-    Ignore
+    InitEvent,
+    IgnoreEvent
 }
 
 impl From<FloodsubEvent> for EventType {
@@ -65,22 +65,22 @@ impl From<FloodsubEvent> for EventType {
             let data = &msg.data;
             // TODO: REMOVE HARD CODE CASES
             info!("Event with topic {topic} received");
-            match topic {
+            match &topic {
                 "CHAIN" => {
                     if let Ok(chainMessage) = serde_json::from_slice::<ChainResponse>(&data) {
-                        return EventType::LocalChainResponse(chainMessage);
+                        return EventType::ChainResponseEvent(chainMessage);
                     } else if let Ok(chainRequest) = serde_json::from_slice::<ChainRequest>(&data) {
-                        return EventType::LocalChainRequest(chainRequest);
+                        return EventType::ChainRequestEvent(chainRequest);
                     }
                 },
                 "BLOCK" => {
                     if let Ok(blockAddition) = serde_json::from_slice::<BlockAddition>(&data) {
-                        return EventType::LocalBlockAddition(blockAddition);
+                        return EventType::BlockAdditionEvent(blockAddition);
                     }
                 }
             }
         }
-        EventType::Ignore
+        EventType::IgnoreEvent
     }
 }
 
@@ -137,11 +137,11 @@ pub fn handle_cmd_create_block(state: &mut State, swarm: &mut Swarm<StateBehavio
     }
 }
 
-pub fn publish_event(swarm: &mut Swarm<StateBehavior>, topic: &Topic, event: &impl Serialize) {
-    let json = serde_json::to_string(&event).expect("can jsonify request");
+pub fn publish_event(swarm: &mut Swarm<StateBehavior>, topic: &Topic, data: &impl Serialize) {
+    let json = serde_json::to_string(&data).expect("can jsonify request");
     let behavior: &mut StateBehavior = swarm.behaviour_mut();
     
     behavior
         .floodsub
-        .publish(BLOCK_TOPIC.clone(), json.as_bytes());
+        .publish(topic.clone(), json.as_bytes());
 }
