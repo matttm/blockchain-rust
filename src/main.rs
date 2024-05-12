@@ -105,19 +105,11 @@ async fn main() {
                                 .to_string(),
                         };
 
-                        let json = serde_json::to_string(&req).expect("can jsonify request");
-                        swarm
-                            .behaviour_mut()
-                            .floodsub
-                            .publish(p2p::CHAIN_TOPIC.clone(), json.as_bytes());
+                        p2p::publish_event(&mut swarm, &p2p::CHAIN_TOPIC, &req);
                     }
                 }
                 Some(p2p::EventType::ChainResponseEvent(res)) => {
-                    let json = serde_json::to_string(&res).expect("can stringify response");
-                    swarm
-                        .behaviour_mut()
-                        .floodsub
-                        .publish(p2p::CHAIN_TOPIC.clone(), json.as_bytes());
+                    state.blocks = State::choose_chain(state.blocks, res.blocks);
                 }
                 Some(p2p::EventType::InputEvent(line)) => {
                     info!("Received user input");

@@ -129,7 +129,7 @@ pub fn handle_cmd_create_block(state: &mut State, swarm: &mut Swarm<StateBehavio
     if let Some(data) = cmd.strip_prefix("create b ") {
         let last = state.blocks.last().expect("Expect block");
         let block = Block::new(last.id + 1, last.hash.clone(), data.to_owned());
-        state.blocks.push(block);
+        state.blocks.push(block.clone());
         info!("broadcasting new block");
         let event = BlockAddition{ creator: PEER_ID.to_string(), block: block };
         publish_event(
