@@ -132,19 +132,19 @@ pub fn handle_cmd_create_block(state: &mut State, swarm: &mut Swarm<StateBehavio
         state.blocks.push(block.clone());
         info!("broadcasting new block");
         let event = BlockAddition{ creator: PEER_ID.to_string(), block: block };
-        publish_event(
+        __publish_event(
             swarm,
             &BLOCK_TOPIC,
-            &event
+            event
         )
     }
 }
 
-pub fn publish_event(swarm: &mut Swarm<StateBehavior>, topic: &Topic, data: &impl Serialize) {
+pub fn __publish_event(swarm: &mut Swarm<StateBehavior>, topic: &Topic, data: impl Serialize) {
     let json = serde_json::to_string(&data).expect("can jsonify request");
     let behavior: &mut StateBehavior = swarm.behaviour_mut();
     
     behavior
         .floodsub
-        .publish(topic.clone(), json.as_bytes());
+        .publish(topic.clone(), json.clone().into_bytes());
 }

@@ -105,7 +105,7 @@ async fn main() {
                                 .to_string(),
                         };
 
-                        p2p::publish_event(&mut swarm, &p2p::CHAIN_TOPIC, &req);
+                        p2p::__publish_event(&mut swarm, &p2p::CHAIN_TOPIC, req);
                     }
                 }
                 Some(p2p::EventType::ChainResponseEvent(res)) => {
@@ -130,7 +130,7 @@ async fn main() {
                             blocks: state.blocks.clone(),
                             receiver: peer_id,
                         };
-                        p2p::publish_event(&mut swarm, &p2p::CHAIN_TOPIC, &data);
+                        p2p::__publish_event(&mut swarm, &p2p::CHAIN_TOPIC, data);
                     }
                 }
                 Some(p2p::EventType::BlockAdditionEvent(blockAddition)) => {
