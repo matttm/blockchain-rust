@@ -7,7 +7,7 @@ pub mod utilities;
 use crate::state::State;
 
 use libp2p::{
-    core::{upgrade},
+    core::upgrade,
     futures::StreamExt,
     identity::{ed25519, Keypair},
     noise, swarm, tcp, yamux, Swarm, Transport,
@@ -17,8 +17,8 @@ use std::time::Duration;
 use tokio::{
     io::{stdin, AsyncBufReadExt, BufReader},
     select, spawn,
+    sync::mpsc,
     time::sleep,
-    sync::mpsc
 };
 
 #[tokio::main]
@@ -77,11 +77,11 @@ async fn main() {
                     println!("Constructing an input event");
                     Some(p2p::EventType::InputEvent(line.expect("Input exists").unwrap()))
                 }
-                _ = init_receiver.recv() => {
+                Some(_str) = init_receiver.recv() => {
                     println!("Received Init event");
                     Some(p2p::EventType::InitEvent)
                 },
-                event = swarm.select_next_some() => {
+                _event = swarm.select_next_some() => {
                     info!("Received event from zwarm");
                     None
                 },
@@ -134,7 +134,10 @@ async fn main() {
                     }
                 }
                 Some(p2p::EventType::BlockAdditionEvent(blockAddition)) => {
-                    info!("received new block from {}", blockAddition.creator.to_string());
+                    info!(
+                        "received new block from {}",
+                        blockAddition.creator.to_string()
+                    );
                     state.add_block(blockAddition.block);
                 }
                 Some(p2p::EventType::IgnoreEvent) => (),
