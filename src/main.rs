@@ -73,9 +73,9 @@ async fn main() {
     loop {
         let evt = {
             select! {
-                line = stdin.next_line() => {
+                Ok(Some(line)) = stdin.next_line() => {
                     println!("Constructing an input event");
-                    Some(p2p::EventType::InputEvent(line.expect("Input exists").unwrap()))
+                    Some(p2p::EventType::InputEvent(line))
                 }
                 Some(_str) = init_receiver.recv() => {
                     println!("Received Init event");
