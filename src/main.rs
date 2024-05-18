@@ -140,6 +140,22 @@ async fn main() {
                     );
                     state.add_block(blockAddition.block);
                 }
+                Some(p2p::EventType::DiscoveredEvent(peers)) => {
+                    for (peer_id, _addr) in peers {
+                        swarm
+                            .behaviour_mut()
+                            .floodsub
+                            .add_node_to_partial_view(peer_id);
+                    }
+                }
+                Some(p2p::EventType::ExpiredEveent(peers)) => {
+                    for (peer_id, _addr) in peers {
+                        swarm
+                            .behaviour_mut()
+                            .floodsub
+                            .remove_node_from_partial_view(&peer_id);
+                    }
+                }
                 Some(p2p::EventType::IgnoreEvent) => (),
                 None => error!("Error occured"),
             }

@@ -54,6 +54,8 @@ pub enum EventType {
     InputEvent(String),
     // the following is never sent over the swarm (only used locally)
     InitEvent,
+    DiscoveredEvent(Vec<(PeerId, Multiaddr)>),
+    ExpiredEveent(Vec<(PeerId, Multiaddr)>),
     IgnoreEvent,
 }
 
@@ -61,15 +63,14 @@ impl From<mdns::Event> for EventType {
     fn from(event: mdns::Event) -> Self {
         match event {
             mdns::Event::Discovered(peers) => {
-                for (peer_id, addr) in peers {
-                    info!("Connecting to peer {}", addr);
-                }
+                info!("Connecting to peer");
+                return EventType::DiscoveredEvent(peers);
             }
             mdns::Event::Expired(peers) => {
                 info!("A peer expired");
+                return EventType::ExpiredEveent(peers);
             }
         }
-        EventType::IgnoreEvent
     }
 }
 impl From<FloodsubEvent> for EventType {
