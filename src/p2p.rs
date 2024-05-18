@@ -7,7 +7,7 @@ use libp2p::{
         protocol::{FloodsubProtocol, FloodsubRpc},
         Floodsub, FloodsubEvent, FloodsubMessage, Topic,
     },
-    identity,
+    identity, mdns,
     swarm::{
         behaviour::FromSwarm, ConnectionDenied, ConnectionId, NetworkBehaviour, OneShotHandler,
         Swarm,
@@ -18,9 +18,9 @@ use libp2p::{
 use log::{error, info};
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
-use std::{clone, collections::HashSet};
 use std::convert::From;
 use std::task::{Context, Poll};
+use std::{clone, collections::HashSet};
 use tokio::sync::mpsc;
 
 pub static KEYS: Lazy<identity::Keypair> = Lazy::new(identity::Keypair::generate_ed25519);
@@ -54,9 +54,24 @@ pub enum EventType {
     InputEvent(String),
     // the following is never sent over the swarm (only used locally)
     InitEvent,
-    IgnoreEvent
+    IgnoreEvent,
 }
 
+impl From<mdns::Event> for EventType {
+    fn from(event: mdns::Event) -> Self {
+        match event {
+            mdns::Event::Discovered(peers) => {
+                for (peer_id, addr) in peers {
+                    info!("Connecting to peer {}", addr);
+                }
+            }
+            mdns::Event::Expired(peers) => {
+                info!("A peer expired");
+            }
+        }
+        EventType::IgnoreEvent
+    }
+}
 impl From<FloodsubEvent> for EventType {
     fn from(event: FloodsubEvent) -> Self {
         if let FloodsubEvent::Message(msg) = event {
@@ -92,12 +107,15 @@ impl From<FloodsubEvent> for EventType {
 #[behaviour(to_swarm = "EventType")]
 pub struct StateBehavior {
     pub floodsub: Floodsub,
+    pub mdns: mdns::tokio::Behaviour,
 }
 
 impl StateBehavior {
     pub async fn new() -> Self {
         let mut behavior = Self {
             floodsub: Floodsub::new(*PEER_ID),
+            mdns: mdns::tokio::Behaviour::new(mdns::Config::default(), PEER_ID.clone())
+                .expect("should create mdns"),
         };
         behavior.floodsub.subscribe(CHAIN_TOPIC.clone());
         behavior.floodsub.subscribe(BLOCK_TOPIC.clone());
@@ -131,19 +149,18 @@ pub fn handle_cmd_create_block(state: &mut State, swarm: &mut Swarm<StateBehavio
         let block = Block::new(last.id + 1, last.hash.clone(), data.to_owned());
         state.blocks.push(block.clone());
         info!("broadcasting new block");
-        let event = BlockAddition{ creator: PEER_ID.to_string(), block: block };
-        __publish_event(
-            swarm,
-            &BLOCK_TOPIC,
-            event
-        )
+        let event = BlockAddition {
+            creator: PEER_ID.to_string(),
+            block: block,
+        };
+        __publish_event(swarm, &BLOCK_TOPIC, event)
     }
 }
 
 pub fn __publish_event(swarm: &mut Swarm<StateBehavior>, topic: &Topic, data: impl Serialize) {
     let json = serde_json::to_string(&data).expect("can jsonify request");
     let behavior: &mut StateBehavior = swarm.behaviour_mut();
-    
+
     behavior
         .floodsub
         .publish(topic.clone(), json.clone().into_bytes());
