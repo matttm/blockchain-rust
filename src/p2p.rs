@@ -20,7 +20,7 @@ use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use std::convert::From;
 use std::task::{Context, Poll};
-use std::{clone, collections::HashSet};
+use std::{clone, collections::HashSet, fmt};
 use tokio::sync::mpsc;
 
 pub static KEYS: Lazy<identity::Keypair> = Lazy::new(identity::Keypair::generate_ed25519);
@@ -45,6 +45,7 @@ pub struct BlockAddition {
     pub block: Block,
 }
 
+#[derive(Debug)]
 pub enum EventType {
     BlockAdditionEvent(BlockAddition),
     ChainRequestEvent(ChainRequest),

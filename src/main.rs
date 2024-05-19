@@ -66,7 +66,7 @@ async fn main() {
 
     spawn(async move {
         sleep(Duration::from_secs(1)).await;
-        println!("sending init event");
+        info!("sending init event");
         init_sender.send(true).expect("can send init event");
     });
 
@@ -81,9 +81,9 @@ async fn main() {
                     println!("Received Init event");
                     Some(p2p::EventType::InitEvent)
                 },
-                _event = swarm.select_next_some() => {
-                    info!("Received event from zwarm");
-                    None
+                swarm::SwarmEvent::Behaviour(event) = swarm.select_next_some() => {
+                    info!("Received {:?} from swarm", event);
+                    Some(event)
                 },
             }
         };
