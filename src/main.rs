@@ -23,7 +23,7 @@ use tokio::{
 async fn main() {
     pretty_env_logger::init();
     info!("Initializing channels");
-    info!("Peer id: {}", p2p::PEER_ID.clone());
+    info!("Node id: {}", p2p::PEER_ID.clone());
     let (init_sender, mut init_receiver) = mpsc::unbounded_channel();
 
     let auth_keys = Keypair::generate_ed25519();
@@ -37,7 +37,6 @@ async fn main() {
     let transport = tcp::tokio::Transport::new(tcp::Config::default())
         .upgrade(upgrade::Version::V1)
         .authenticate(noise)
-        //  .apply()
         .multiplex(yamux::Config::default())
         .boxed();
 
@@ -72,15 +71,15 @@ async fn main() {
         let evt = {
             select! {
                 Ok(Some(line)) = stdin.next_line() => {
-                    println!("Constructing an input event");
+                    debug!("Constructing an input event");
                     Some(p2p::EventType::InputEvent(line))
                 }
                 Some(_str) = init_receiver.recv() => {
-                    println!("Received Init event");
+                    debug!("Received Init event");
                     Some(p2p::EventType::InitEvent)
                 },
                 swarm::SwarmEvent::Behaviour(event) = swarm.select_next_some() => {
-                    info!("Received {:?} from swarm", event);
+                    debug!("Received {:?} from swarm", event);
                     Some(event)
                 },
             }
@@ -102,7 +101,6 @@ async fn main() {
                                 .expect("at least one peer")
                                 .to_string(),
                         };
-
                         p2p::publish_event(&mut swarm, &p2p::CHAIN_TOPIC, req);
                     }
                 }

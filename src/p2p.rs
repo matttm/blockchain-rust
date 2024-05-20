@@ -65,11 +65,11 @@ impl From<mdns::Event> for EventType {
     fn from(event: mdns::Event) -> Self {
         match event {
             mdns::Event::Discovered(peers) => {
-                info!("Connecting to peer");
+                debug!("Received Discovered MDNS event");
                 return EventType::DiscoveredEvent(peers);
             }
             mdns::Event::Expired(peers) => {
-                info!("A peer expired");
+                debug!("Received Expired mDNS event");
                 return EventType::ExpiredEvent(peers);
             }
         }
@@ -88,7 +88,8 @@ impl From<FloodsubEvent> for EventType {
                 "CHAIN" => {
                     if let Ok(chain_message) = serde_json::from_slice::<ChainResponse>(&data) {
                         return EventType::ChainResponseEvent(chain_message);
-                    } else if let Ok(chain_request) = serde_json::from_slice::<ChainRequest>(&data) {
+                    } else if let Ok(chain_request) = serde_json::from_slice::<ChainRequest>(&data)
+                    {
                         return EventType::ChainRequestEvent(chain_request);
                     }
                 }
