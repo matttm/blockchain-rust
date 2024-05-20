@@ -15,9 +15,10 @@ use libp2p::{
     PeerId,
 };
 
-use log::{error, info};
+use log::{debug, error, info};
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
+use serde_json::error;
 use std::convert::From;
 use std::task::{Context, Poll};
 use std::{clone, collections::HashSet, fmt};
@@ -56,7 +57,7 @@ pub enum EventType {
     // the following is never sent over the swarm (only used locally)
     InitEvent,
     DiscoveredEvent(Vec<(PeerId, Multiaddr)>),
-    ExpiredEveent(Vec<(PeerId, Multiaddr)>),
+    ExpiredEvent(Vec<(PeerId, Multiaddr)>),
     IgnoreEvent,
 }
 
@@ -69,13 +70,14 @@ impl From<mdns::Event> for EventType {
             }
             mdns::Event::Expired(peers) => {
                 info!("A peer expired");
-                return EventType::ExpiredEveent(peers);
+                return EventType::ExpiredEvent(peers);
             }
         }
     }
 }
 impl From<FloodsubEvent> for EventType {
     fn from(event: FloodsubEvent) -> Self {
+        debug!("Received FloodsubEvent");
         if let FloodsubEvent::Message(msg) = event {
             // let topic = String::from(msg.topics[0].id());
             let topic = msg.topics[0].id();
@@ -84,15 +86,15 @@ impl From<FloodsubEvent> for EventType {
             info!("Event with topic {topic} received");
             match topic {
                 "CHAIN" => {
-                    if let Ok(chainMessage) = serde_json::from_slice::<ChainResponse>(&data) {
-                        return EventType::ChainResponseEvent(chainMessage);
-                    } else if let Ok(chainRequest) = serde_json::from_slice::<ChainRequest>(&data) {
-                        return EventType::ChainRequestEvent(chainRequest);
+                    if let Ok(chain_message) = serde_json::from_slice::<ChainResponse>(&data) {
+                        return EventType::ChainResponseEvent(chain_message);
+                    } else if let Ok(chain_request) = serde_json::from_slice::<ChainRequest>(&data) {
+                        return EventType::ChainRequestEvent(chain_request);
                     }
                 }
                 "BLOCK" => {
-                    if let Ok(blockAddition) = serde_json::from_slice::<BlockAddition>(&data) {
-                        return EventType::BlockAdditionEvent(blockAddition);
+                    if let Ok(block_addition) = serde_json::from_slice::<BlockAddition>(&data) {
+                        return EventType::BlockAdditionEvent(block_addition);
                     }
                 }
                 _ => {
@@ -119,7 +121,9 @@ impl StateBehavior {
             mdns: mdns::tokio::Behaviour::new(mdns::Config::default(), PEER_ID.clone())
                 .expect("should create mdns"),
         };
+        debug!("Subscribing to chain topic");
         behavior.floodsub.subscribe(CHAIN_TOPIC.clone());
+        debug!("Subscribing to block topic");
         behavior.floodsub.subscribe(BLOCK_TOPIC.clone());
         behavior
     }
@@ -153,15 +157,16 @@ pub fn handle_cmd_create_block(state: &mut State, swarm: &mut Swarm<StateBehavio
         info!("broadcasting new block");
         let event = BlockAddition {
             creator: PEER_ID.to_string(),
-            block: block,
+            block,
         };
-        __publish_event(swarm, &BLOCK_TOPIC, event)
+        publish_event(swarm, &BLOCK_TOPIC, event)
     }
 }
 
-pub fn __publish_event(swarm: &mut Swarm<StateBehavior>, topic: &Topic, data: impl Serialize) {
+pub fn publish_event(swarm: &mut Swarm<StateBehavior>, topic: &Topic, data: impl Serialize) {
     let json = serde_json::to_string(&data).expect("can jsonify request");
     let behavior: &mut StateBehavior = swarm.behaviour_mut();
+    debug!("Sending payload: {}", &json);
 
     behavior
         .floodsub

@@ -7,10 +7,8 @@ pub mod utilities;
 use crate::state::State;
 
 use libp2p::{
-    core::upgrade,
-    futures::StreamExt,
-    identity::{ed25519, Keypair},
-    noise, swarm, tcp, yamux, Swarm, Transport,
+    core::upgrade, futures::StreamExt, identity::Keypair, noise, swarm, tcp, yamux, Swarm,
+    Transport,
 };
 use log::{error, info};
 use std::time::Duration;
@@ -105,7 +103,7 @@ async fn main() {
                                 .to_string(),
                         };
 
-                        p2p::__publish_event(&mut swarm, &p2p::CHAIN_TOPIC, req);
+                        p2p::publish_event(&mut swarm, &p2p::CHAIN_TOPIC, req);
                     }
                 }
                 Some(p2p::EventType::ChainResponseEvent(res)) => {
@@ -130,15 +128,15 @@ async fn main() {
                             blocks: state.blocks.clone(),
                             receiver: peer_id,
                         };
-                        p2p::__publish_event(&mut swarm, &p2p::CHAIN_TOPIC, data);
+                        p2p::publish_event(&mut swarm, &p2p::CHAIN_TOPIC, data);
                     }
                 }
-                Some(p2p::EventType::BlockAdditionEvent(blockAddition)) => {
+                Some(p2p::EventType::BlockAdditionEvent(block_addition)) => {
                     info!(
                         "received new block from {}",
-                        blockAddition.creator.to_string()
+                        block_addition.creator.to_string()
                     );
-                    state.add_block(blockAddition.block);
+                    state.add_block(block_addition.block);
                 }
                 Some(p2p::EventType::DiscoveredEvent(peers)) => {
                     for (peer_id, _addr) in peers {
@@ -148,7 +146,7 @@ async fn main() {
                             .add_node_to_partial_view(peer_id);
                     }
                 }
-                Some(p2p::EventType::ExpiredEveent(peers)) => {
+                Some(p2p::EventType::ExpiredEvent(peers)) => {
                     for (peer_id, _addr) in peers {
                         swarm
                             .behaviour_mut()
