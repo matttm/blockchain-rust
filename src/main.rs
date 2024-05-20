@@ -10,7 +10,7 @@ use libp2p::{
     core::upgrade, futures::StreamExt, identity::Keypair, noise, swarm, tcp, yamux, Swarm,
     Transport,
 };
-use log::{error, info};
+use log::{debug, error, info};
 use std::time::Duration;
 use tokio::{
     io::{stdin, AsyncBufReadExt, BufReader},
@@ -138,6 +138,7 @@ async fn main() {
                 }
                 Some(p2p::EventType::DiscoveredEvent(peers)) => {
                     for (peer_id, _addr) in peers {
+                        debug!("adding {peer_id} to floodsub");
                         swarm
                             .behaviour_mut()
                             .floodsub
@@ -146,6 +147,7 @@ async fn main() {
                 }
                 Some(p2p::EventType::ExpiredEvent(peers)) => {
                     for (peer_id, _addr) in peers {
+                        debug!("Rmoving {peer_id} from floodsub");
                         swarm
                             .behaviour_mut()
                             .floodsub
