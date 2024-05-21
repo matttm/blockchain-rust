@@ -5,12 +5,8 @@ use std::io::stdout;
 use crate::constants::DIFFICULTY_PREFIX;
 use crate::utilities::{calculate_hash, hash_to_binary};
 use crossterm::{
-    cursor::{
-        SavePosition,
-        RestorePosition,
-        MoveToPreviousLine
-    },
-    execute
+    cursor::{MoveToPreviousLine, RestorePosition, SavePosition},
+    execute,
 };
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -27,7 +23,7 @@ pub struct Block {
 impl Block {
     pub fn new(id: u64, previous_hash: String, data: String) -> Self {
         let timestamp: i64 = Utc::now().timestamp();
-        let (nonce, hash): (u64, String) = Block::mine_block(id, timestamp, &previous_hash, &data);
+        let (nonce, hash): (u64, String) = (1, String::from("test"));
         Self {
             id,
             hash,

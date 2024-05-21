@@ -24,14 +24,10 @@ async fn main() {
     pretty_env_logger::init();
     info!("Initializing channels");
     info!("Node id: {}", p2p::PEER_ID.clone());
-    let (init_sender, mut init_receiver) = mpsc::unbounded_channel();
 
     let auth_keys = Keypair::generate_ed25519();
-
     let noise = noise::Config::new(&auth_keys).unwrap();
-
     let mut state: State = State::new();
-
     let behavior = p2p::StateBehavior::new().await;
 
     let transport = tcp::tokio::Transport::new(tcp::Config::default())
@@ -39,8 +35,6 @@ async fn main() {
         .authenticate(noise)
         .multiplex(yamux::Config::default())
         .boxed();
-
-    // instantiate swarmbuilder
     let mut swarm = Swarm::new(
         transport,
         behavior,
@@ -49,7 +43,6 @@ async fn main() {
             spawn(fut);
         })),
     );
-
     //  read from stdin
     let mut stdin = BufReader::new(stdin()).lines();
 
@@ -61,12 +54,6 @@ async fn main() {
     )
     .expect("swarm can be started");
 
-    spawn(async move {
-        sleep(Duration::from_secs(1)).await;
-        info!("sending init event");
-        init_sender.send(true).expect("can send init event");
-    });
-
     loop {
         let evt = {
             select! {
@@ -74,39 +61,19 @@ async fn main() {
                     debug!("Constructing an input event");
                     Some(p2p::EventType::InputEvent(line))
                 }
-                Some(_str) = init_receiver.recv() => {
-                    debug!("Received Init event");
-                    Some(p2p::EventType::InitEvent)
-                },
-                swarm::SwarmEvent::Behaviour(event) = swarm.select_next_some() => {
-                    debug!("Received {:?} from swarm", event);
-                    Some(event)
+                eventSw = swarm.select_next_some() => {
+                    if let swarm::SwarmEvent::Behaviour(event) = eventSw {
+                        debug!("Received {:?} from swarm", event);
+                        Some(event)
+                    } else {
+                        Some(p2p::EventType::IgnoreEvent)
+                    }
                 },
             }
         };
         // now do something with the evt
         if let Some(ref _trigger) = evt {
             match evt {
-                Some(p2p::EventType::InitEvent) => {
-                    info!("Received init event");
-                    let peers = p2p::get_peer_list(&swarm);
-                    state.create_genesis();
-
-                    info!("connected nodes: {}", peers.len());
-                    if !peers.is_empty() {
-                        let req = p2p::ChainRequest {
-                            from_peer_id: peers
-                                .iter()
-                                .last()
-                                .expect("at least one peer")
-                                .to_string(),
-                        };
-                        p2p::publish_event(&mut swarm, &p2p::CHAIN_TOPIC, req);
-                    }
-                }
-                Some(p2p::EventType::ChainResponseEvent(res)) => {
-                    state.blocks = State::choose_chain(state.blocks, res.blocks);
-                }
                 Some(p2p::EventType::InputEvent(line)) => {
                     info!("Received user input");
                     match line.as_str() {
@@ -116,17 +83,6 @@ async fn main() {
                             p2p::handle_cmd_create_block(&mut state, &mut swarm, cmd)
                         }
                         _ => error!("unknown command"),
-                    }
-                }
-                Some(p2p::EventType::ChainRequestEvent(req)) => {
-                    let peer_id = req.from_peer_id;
-                    info!("sending local chain to {}", peer_id);
-                    if p2p::PEER_ID.to_string() == peer_id {
-                        let data = p2p::ChainResponse {
-                            blocks: state.blocks.clone(),
-                            receiver: peer_id,
-                        };
-                        p2p::publish_event(&mut swarm, &p2p::CHAIN_TOPIC, data);
                     }
                 }
                 Some(p2p::EventType::BlockAdditionEvent(block_addition)) => {
