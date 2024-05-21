@@ -8,9 +8,9 @@ Development Status: Active
 
 ### Discussion
 
-## Lessmons Learned
+## Lessons Learned
 
-Note to self: insert blurb about using select! in a loop. I had an issue that since the [attern was too specific, messages seemed tp block.
+Note to self: insert blurb about using select! in a loop. I had an issue that since the pattern was too specific, messages seemed to block.
 ## Getting Started
 
 ## Enhancements
