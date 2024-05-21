@@ -8,6 +8,9 @@ Development Status: Active
 
 ### Discussion
 
+## Lessmons Learned
+
+Note to self: insert blurb about using select! in a loop. I had an issue that since the [attern was too specific, messages seemed tp block.
 ## Getting Started
 
 ## Enhancements
