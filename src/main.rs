@@ -1,8 +1,6 @@
 pub mod block;
-pub mod constants;
 pub mod p2p;
 pub mod state;
-pub mod utilities;
 
 use crate::state::State;
 
@@ -11,12 +9,9 @@ use libp2p::{
     Transport,
 };
 use log::{debug, error, info};
-use std::time::Duration;
 use tokio::{
     io::{stdin, AsyncBufReadExt, BufReader},
-    select, spawn,
-    sync::mpsc,
-    time::sleep,
+    select, spawn
 };
 
 #[tokio::main]
@@ -28,6 +23,8 @@ async fn main() {
     let auth_keys = Keypair::generate_ed25519();
     let noise = noise::Config::new(&auth_keys).unwrap();
     let mut state: State = State::new();
+    state.create_genesis();
+
     let behavior = p2p::StateBehavior::new().await;
 
     let transport = tcp::tokio::Transport::new(tcp::Config::default())
@@ -61,8 +58,8 @@ async fn main() {
                     debug!("Constructing an input event");
                     Some(p2p::EventType::InputEvent(line))
                 }
-                eventSw = swarm.select_next_some() => {
-                    if let swarm::SwarmEvent::Behaviour(event) = eventSw {
+                event_sw = swarm.select_next_some() => {
+                    if let swarm::SwarmEvent::Behaviour(event) = event_sw {
                         debug!("Received {:?} from swarm", event);
                         Some(event)
                     } else {
@@ -90,7 +87,7 @@ async fn main() {
                         "received new block from {}",
                         block_addition.creator.to_string()
                     );
-                    state.add_block(block_addition.block);
+                    state.blocks.push(block_addition.block);
                 }
                 Some(p2p::EventType::DiscoveredEvent(peers)) => {
                     for (peer_id, _addr) in peers {

@@ -2,27 +2,18 @@ use crate::block::Block;
 use crate::State;
 
 use libp2p::{
-    core::{Endpoint, Multiaddr},
-    floodsub::{
-        protocol::{FloodsubProtocol, FloodsubRpc},
-        Floodsub, FloodsubEvent, FloodsubMessage, Topic,
-    },
+    core::Multiaddr,
+    floodsub::{Floodsub, FloodsubEvent, Topic},
     identity, mdns,
-    swarm::{
-        behaviour::FromSwarm, ConnectionDenied, ConnectionId, NetworkBehaviour, OneShotHandler,
-        Swarm,
-    },
+    swarm::{NetworkBehaviour, Swarm},
     PeerId,
 };
 
 use log::{debug, error, info};
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
-use serde_json::error;
+use std::collections::HashSet;
 use std::convert::From;
-use std::task::{Context, Poll};
-use std::{clone, collections::HashSet, fmt};
-use tokio::sync::mpsc;
 
 pub static KEYS: Lazy<identity::Keypair> = Lazy::new(identity::Keypair::generate_ed25519);
 pub static PEER_ID: Lazy<PeerId> = Lazy::new(|| PeerId::from(KEYS.public()));
