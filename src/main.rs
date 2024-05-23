@@ -11,7 +11,7 @@ use libp2p::{
 use log::{debug, error, info};
 use tokio::{
     io::{stdin, AsyncBufReadExt, BufReader},
-    select, spawn
+    select, spawn,
 };
 
 #[tokio::main]
@@ -59,8 +59,8 @@ async fn main() {
                     Some(p2p::EventType::InputEvent(line))
                 }
                 event_sw = swarm.select_next_some() => {
+                    debug!("Received {:?} from swarm", event_sw);
                     if let swarm::SwarmEvent::Behaviour(event) = event_sw {
-                        debug!("Received {:?} from swarm", event);
                         Some(event)
                     } else {
                         Some(p2p::EventType::IgnoreEvent)
@@ -101,14 +101,16 @@ async fn main() {
                 Some(p2p::EventType::ExpiredEvent(peers)) => {
                     for (peer_id, _addr) in peers {
                         debug!("Rmoving {peer_id} from floodsub");
-                        swarm
-                            .behaviour_mut()
-                            .floodsub
-                            .remove_node_from_partial_view(&peer_id);
+                        if !swarm.behaviour_mut().mdns.has_node(&peer_id) {
+                            swarm
+                                .behaviour_mut()
+                                .floodsub
+                                .remove_node_from_partial_view(&peer_id);
+                        }
                     }
                 }
                 Some(p2p::EventType::IgnoreEvent) => (),
-                None => error!("Error occured"),
+                None => (), // error!("Error occured"),
             }
         }
     }
