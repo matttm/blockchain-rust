@@ -4,7 +4,8 @@ use crate::State;
 use libp2p::{
     core::Multiaddr,
     floodsub::{Floodsub, FloodsubEvent, Topic},
-    identity, mdns,
+    identity::{self, Keypair},
+    mdns,
     swarm::{NetworkBehaviour, Swarm},
     PeerId,
 };
@@ -15,8 +16,6 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use std::convert::From;
 
-pub static KEYS: Lazy<identity::Keypair> = Lazy::new(identity::Keypair::generate_ed25519);
-pub static PEER_ID: Lazy<PeerId> = Lazy::new(|| PeerId::from(KEYS.public()));
 pub static CHAIN_TOPIC: Lazy<Topic> = Lazy::new(|| Topic::new("CHAIN"));
 pub static BLOCK_TOPIC: Lazy<Topic> = Lazy::new(|| Topic::new("BLOCK"));
 
@@ -84,11 +83,14 @@ pub struct StateBehavior {
 }
 
 impl StateBehavior {
-    pub async fn new() -> Self {
+    pub async fn new(keys: &Keypair) -> Self {
         let mut behavior = Self {
-            floodsub: Floodsub::new(*PEER_ID),
-            mdns: mdns::tokio::Behaviour::new(mdns::Config::default(), PEER_ID.clone())
-                .expect("should create mdns"),
+            floodsub: Floodsub::new(keys.public().to_peer_id().clone()),
+            mdns: mdns::tokio::Behaviour::new(
+                mdns::Config::default(),
+                keys.public().to_peer_id().clone(),
+            )
+            .expect("should create mdns"),
         };
         debug!("Subscribing to block topic");
         behavior.floodsub.subscribe(BLOCK_TOPIC.clone());

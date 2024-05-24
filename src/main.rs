@@ -18,14 +18,15 @@ use tokio::{
 async fn main() {
     pretty_env_logger::init();
     info!("Initializing channels");
-    info!("Node id: {}", p2p::PEER_ID.clone());
+    let keys: Keypair = Keypair::generate_ed25519();
+    // info!("Node id: {}", keys.clone());
 
     let auth_keys = Keypair::generate_ed25519();
     let noise = noise::Config::new(&auth_keys).unwrap();
     let mut state: State = State::new();
     state.create_genesis();
 
-    let behavior = p2p::StateBehavior::new().await;
+    let behavior = p2p::StateBehavior::new(&keys).await;
 
     let transport = tcp::tokio::Transport::new(tcp::Config::default())
         .upgrade(upgrade::Version::V1)
@@ -35,7 +36,7 @@ async fn main() {
     let mut swarm = Swarm::new(
         transport,
         behavior,
-        *p2p::PEER_ID,
+        keys.public().to_peer_id(),
         swarm::Config::with_executor(Box::new(|fut| {
             spawn(fut);
         })),
