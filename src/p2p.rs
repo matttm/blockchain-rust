@@ -114,11 +114,14 @@ pub struct StateBehavior {
 }
 
 impl StateBehavior {
-    pub fn new(keys: &Keypair) -> Self {
+    pub fn new(keys: &identity::Keypair) -> Self {
         let mut behavior = Self {
-            floodsub: Floodsub::new(keys),
-            mdns: mdns::tokio::Behaviour::new(mdns::Config::default(), keys)
-                .expect("should create mdns"),
+            floodsub: Floodsub::new(keys.public().to_peer_id().clone()),
+            mdns: mdns::tokio::Behaviour::new(
+                mdns::Config::default(),
+                keys.public().to_peer_id().clone(),
+            )
+            .expect("should create mdns"),
         };
         debug!("Subscribing to chain topic");
         behavior.floodsub.subscribe(CHAIN_TOPIC.clone());

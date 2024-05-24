@@ -10,10 +10,9 @@ use crate::state::State;
 
 use libp2p::{core::upgrade, futures::StreamExt, noise, swarm, tcp, yamux, Swarm, SwarmBuilder};
 use log::{debug, error, info};
-use std::time::Duration;
 use tokio::{
     io::{stdin, AsyncBufReadExt, BufReader},
-    select,
+    select, spawn,
     sync::mpsc,
     time::sleep,
 };
@@ -24,14 +23,7 @@ async fn main() {
     info!("Initializing channels");
     let (init_sender, mut init_receiver) = mpsc::unbounded_channel();
 
-    let auth_keys = Keypair::generate_ed25519();
-
-    let noise = noise::Config::new(&auth_keys).unwrap();
-
     let mut state: State = State::new();
-
-    let mut state: State = State::new();
-    state.create_genesis();
 
     let mut swarm = SwarmBuilder::with_new_identity()
         .with_tokio()
@@ -73,9 +65,13 @@ async fn main() {
                     debug!("Received Init event");
                     Some(p2p::EventType::InitEvent)
                 },
-                swarm::SwarmEvent::Behaviour(event) = swarm.select_next_some() => {
-                    debug!("Received {:?} from swarm", event);
-                    Some(event)
+                event_sw = swarm.select_next_some() => {
+                    debug!("Received {:?} from swarm", event_sw);
+                    if let swarm::SwarmEvent::Behaviour(event) = event_sw {
+                        Some(event)
+                    } else {
+                        Some(p2p::EventType::IgnoreEvent)
+                    }
                 },
             }
         };
@@ -116,13 +112,11 @@ async fn main() {
                 Some(p2p::EventType::ChainRequestEvent(req)) => {
                     let peer_id = req.from_peer_id;
                     info!("sending local chain to {}", peer_id);
-                    if p2p::PEER_ID.to_string() == peer_id {
-                        let data = p2p::ChainResponse {
-                            blocks: state.blocks.clone(),
-                            receiver: peer_id,
-                        };
-                        p2p::publish_event(&mut swarm, &p2p::CHAIN_TOPIC, data);
-                    }
+                    let data = p2p::ChainResponse {
+                        blocks: state.blocks.clone(),
+                        receiver: peer_id,
+                    };
+                    p2p::publish_event(&mut swarm, &p2p::CHAIN_TOPIC, data);
                 }
                 Some(p2p::EventType::BlockAdditionEvent(block_addition)) => {
                     info!(
