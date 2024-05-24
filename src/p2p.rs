@@ -24,8 +24,6 @@ use std::task::{Context, Poll};
 use std::{clone, collections::HashSet, fmt};
 use tokio::sync::mpsc;
 
-pub static KEYS: Lazy<identity::Keypair> = Lazy::new(identity::Keypair::generate_ed25519);
-pub static PEER_ID: Lazy<PeerId> = Lazy::new(|| PeerId::from(KEYS.public()));
 pub static CHAIN_TOPIC: Lazy<Topic> = Lazy::new(|| Topic::new("CHAIN"));
 pub static BLOCK_TOPIC: Lazy<Topic> = Lazy::new(|| Topic::new("BLOCK"));
 
@@ -116,10 +114,10 @@ pub struct StateBehavior {
 }
 
 impl StateBehavior {
-    pub async fn new() -> Self {
+    pub fn new(keys: &Keypair) -> Self {
         let mut behavior = Self {
-            floodsub: Floodsub::new(*PEER_ID),
-            mdns: mdns::tokio::Behaviour::new(mdns::Config::default(), PEER_ID.clone())
+            floodsub: Floodsub::new(keys),
+            mdns: mdns::tokio::Behaviour::new(mdns::Config::default(), keys)
                 .expect("should create mdns"),
         };
         debug!("Subscribing to chain topic");
