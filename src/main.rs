@@ -2,45 +2,38 @@ pub mod block;
 pub mod p2p;
 pub mod state;
 
+use std::time::Duration;
+
 use crate::state::State;
 
-use libp2p::{
-    core::upgrade, futures::StreamExt, identity::Keypair, noise, swarm, tcp, yamux, Swarm,
-    Transport,
-};
+use libp2p::{core::upgrade, futures::StreamExt, noise, swarm, tcp, yamux, Swarm, SwarmBuilder};
 use log::{debug, error, info};
 use tokio::{
     io::{stdin, AsyncBufReadExt, BufReader},
-    select, spawn,
+    select,
 };
 
 #[tokio::main]
 async fn main() {
     pretty_env_logger::init();
     info!("Initializing channels");
-    let keys: Keypair = Keypair::generate_ed25519();
     // info!("Node id: {}", keys.clone());
 
-    let auth_keys = Keypair::generate_ed25519();
-    let noise = noise::Config::new(&auth_keys).unwrap();
     let mut state: State = State::new();
     state.create_genesis();
 
-    let behavior = p2p::StateBehavior::new(&keys).await;
-
-    let transport = tcp::tokio::Transport::new(tcp::Config::default())
-        .upgrade(upgrade::Version::V1)
-        .authenticate(noise)
-        .multiplex(yamux::Config::default())
-        .boxed();
-    let mut swarm = Swarm::new(
-        transport,
-        behavior,
-        keys.public().to_peer_id(),
-        swarm::Config::with_executor(Box::new(|fut| {
-            spawn(fut);
-        })),
-    );
+    let mut swarm = SwarmBuilder::with_new_identity()
+        .with_tokio()
+        .with_tcp(
+            tcp::Config::default(),
+            noise::Config::new,
+            yamux::Config::default,
+        )
+        .expect("can change tcp")
+        .with_behaviour(|keys| Ok(p2p::StateBehavior::new(keys)))
+        .expect("added behavior")
+        .with_swarm_config(|config| config.with_idle_connection_timeout(Duration::from_secs(60)))
+        .build();
     //  read from stdin
     let mut stdin = BufReader::new(stdin()).lines();
 

@@ -83,7 +83,7 @@ pub struct StateBehavior {
 }
 
 impl StateBehavior {
-    pub async fn new(keys: &Keypair) -> Self {
+    pub fn new(keys: &Keypair) -> Self {
         let mut behavior = Self {
             floodsub: Floodsub::new(keys.public().to_peer_id().clone()),
             mdns: mdns::tokio::Behaviour::new(
