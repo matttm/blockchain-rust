@@ -64,13 +64,10 @@ impl State {
     }
     pub fn is_chain_valid(chain: &[Block]) -> bool {
         println!("Processing chain of length {}", chain.len());
-        for i in 0..chain.len() {
-            if i == 0 {
-                continue;
-            }
+        for i in 1..chain.len() {
             let prv = chain.get(i - 1).expect("");
             let cur = chain.get(i).expect("");
-            if State::is_block_valid(&cur, &prv) {
+            if !State::is_block_valid(&cur, &prv) {
                 warn!(
                     "Error: validation error occured on block with id {}",
                     cur.id
