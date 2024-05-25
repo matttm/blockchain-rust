@@ -157,11 +157,11 @@ pub fn handle_cmd_create_block(state: &mut State, swarm: &mut Swarm<StateBehavio
         let block = Block::new(last.id + 1, last.hash.clone(), data.to_owned());
         state.blocks.push(block.clone());
         info!("broadcasting new block");
-        /// let event = BlockAddition {
-        ///     creator: PEER_ID.to_string(),
-        ///     block,
-        /// };
-        let json = serde_json::to_string(&block).expect("can jsonify request");
+        let event = BlockAddition {
+            creator: String::from("1"), // PEER_ID.to_string(),
+            block,
+        };
+        let json = serde_json::to_string(&event).expect("can jsonify request");
         let behavior: &mut StateBehavior = swarm.behaviour_mut();
         debug!("Sending payload: {}", &json);
 
