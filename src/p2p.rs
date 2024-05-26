@@ -7,7 +7,7 @@ use libp2p::{
         protocol::{FloodsubProtocol, FloodsubRpc},
         Floodsub, FloodsubEvent, FloodsubMessage, Topic,
     },
-    identity, mdns,
+    identify, identity, mdns,
     swarm::{
         behaviour::FromSwarm, ConnectionDenied, ConnectionId, NetworkBehaviour, OneShotHandler,
         Swarm,
@@ -104,6 +104,12 @@ impl From<FloodsubEvent> for EventType {
         EventType::IgnoreEvent
     }
 }
+impl From<identify::Event> for EventType {
+    fn from(event: identify::Event) -> Self {
+        debug!("identify event: {:?}", event);
+        EventType::IgnoreEvent
+    }
+}
 
 #[derive(NetworkBehaviour)]
 //#[behaviour(event_process = true)]
@@ -111,6 +117,7 @@ impl From<FloodsubEvent> for EventType {
 pub struct StateBehavior {
     pub floodsub: Floodsub,
     pub mdns: mdns::tokio::Behaviour,
+    pub identify: identify::Behaviour,
 }
 
 impl StateBehavior {
@@ -122,6 +129,10 @@ impl StateBehavior {
                 keys.public().to_peer_id().clone(),
             )
             .expect("should create mdns"),
+            identify: identify::Behaviour::new(identify::Config::new(
+                String::from("1.0.0"),
+                keys.public().clone(),
+            )),
         };
         debug!("Subscribing to chain topic");
         behavior.floodsub.subscribe(CHAIN_TOPIC.clone());
