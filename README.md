@@ -1,20 +1,14 @@
 # blockchain-rust
 
-Development Status: Active
+Development Status: Insctive
 
-# Note
+The mvp was achieved, but a later addition is intended to integrate this with matttm/vote-chain
 
 ## Description
 
-### Discussion
+This is a small program written in Rust using libp2p to create a decentralized blockchain. Each node will use multicast DNS (mDNS) protocol to automatically discover other nodes on the local network and the noise protocol to provide encryption. Floodsub is the main protocol being used for communication the blockchain data itself.
 
-## Lessons Learned
-
-Note to self: insert blurb about using select! in a loop. I had an issue that since the pattern was too specific, messages seemed to block.
 ## Getting Started
-
-## Enhancements
-
 
 ## Authors
 
