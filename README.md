@@ -10,6 +10,24 @@ This is a small program written in Rust using libp2p to create a decentralized b
 
 ## Getting Started
 
+To best run this project. clone the code and open two terminals ;n the root of the project. The binary needs to be built and ran but with the environment variable set, as to get practical log information.
+```
+cargo build
+
+❯ RUST_LOG=info ./target/debug/blockchain-rust                                                                                                                                
+```
+Each terminal this is ran in acts as a unique node and through mDNS, they will connect to eachother if on the same network.
+
+### Commands
+
+When running. of course you want to issue commands, so here is a list of commands.
+```
+ls c    -- print current chain
+
+ls p   -- printr list of current connected peers
+
+create b <data   --- send a block with payload 'data' to peers and add it to the local chain
+```
 ## Authors
 
 -   Matt Maloney : matttm
