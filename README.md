@@ -12,7 +12,7 @@ This is a small program written in Rust using libp2p to create a decentralized b
 
 To best run this project. clone the code and open two terminals ;n the root of the project. The binary needs to be built and ran but with the environment variable set, as to get practical log information.
 ```
-cargo build
+> cargo build
 
 ❯ RUST_LOG=info ./target/debug/blockchain-rust                                                                                                                                
 ```
